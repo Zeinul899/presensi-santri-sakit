@@ -2,9 +2,12 @@
 
 Dokumentasi lengkap pembaruan sistem presensi asrama per kamar sesuai permintaan terbaru:
 - **Penamaan Asrama:** 
-  - **Kelas 9:** **IPS Lt 3** (Kamar 1 s.d. 5) -> format laporan: `IPS Lt 3 - Kamar [Nomor]`
-  - **Kelas 8:** **IPS 2** (Kamar 3.01 s.d. 3.07) -> format laporan: `IPS 2 - Kamar [Nomor]`
-  - **Kelas 7:** **IPS 2** (Kamar 1.01 s.d. 2.05) -> format laporan: `IPS 2 - Kamar [Nomor]`
+  - **Kelas 9:** Asrama **IPS Lt 3** (Kamar 1 s.d. 5) -> format laporan: `IPS Lt 3 - Kamar [Nomor]`
+  - **Kelas 8:** **Kelas 8** (Kamar 3.01 s.d. 3.07) -> format laporan: `Kamar [Nomor]` (tanpa tulisan IPS)
+  - **Kelas 7:** **Kelas 7** (Kamar 1.01 s.d. 2.05) -> format laporan: `Kamar [Nomor]` (tanpa tulisan IPS)
+- **Tampilan Bersih:** 
+  - Tulisan `• Pak Mufti` di bar status telah dihapus.
+  - Teks footer `Formulir internal asrama & UKS.` dan `Google Sheets Terhubung (Otomatis Pisah Tab Kelas)` telah dihapus.
 - **Waktu Laporan:** Sesi **Pagi** dan **Malam**
 - **Lintas Kamar/Asrama:** Bisa memilih santri dari banyak kamar sekaligus tanpa hilang saat berpindah kamar
 - **Pemisahan Tab Google Sheets:** Otomatis memisahkan data ke tab **Kelas 7**, **Kelas 8**, **Kelas 9**, serta Tab Harian (`DD-MM-YYYY`) dan Tab Master (`Semua Riwayat`)

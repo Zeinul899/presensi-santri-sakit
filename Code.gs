@@ -2,7 +2,7 @@
  * ============================================================================
  * GOOGLE APPS SCRIPT - PRESENSI SANTRI ASRAMA (SAKIT, IZIN, ALPA)
  * Versi 5.0 (Pemisahan Tab Kelas 7, 8, 9, Multi-Asrama/Kamar, Sesi Pagi & Malam)
- * Untuk: Pak Mufti, Faris, Zahran & Pengurus Kamar Asrama
+ * Untuk: Faris, Zahran & Pengurus Kamar Asrama
  * Nomor WhatsApp Tujuan: 08935603130 (628935603130)
  * ============================================================================
  * 

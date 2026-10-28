@@ -470,8 +470,8 @@
     ];
 
     const ASRAMA_CONFIG = {
-      "Kelas 7": { asrama: "IPS 2", label: "Kelas 7 (IPS 2)" },
-      "Kelas 8": { asrama: "IPS 2", label: "Kelas 8 (IPS 2)" },
+      "Kelas 7": { asrama: "", label: "Kelas 7" },
+      "Kelas 8": { asrama: "", label: "Kelas 8" },
       "Kelas 9": { asrama: "IPS Lt 3", label: "Kelas 9 (IPS Lt 3)" }
     };
 
@@ -480,11 +480,9 @@
       if ((kelas || "").includes("9")) {
         const num = kStr.replace(/^kamar\s*/i, "").trim();
         return `IPS Lt 3 - Kamar ${num}`;
-      } else if ((kelas || "").includes("8")) {
-        return `IPS 2 - Kamar ${kStr}`;
       } else {
-        // Kelas 7
-        return `IPS 2 - Kamar ${kStr}`;
+        // Kelas 7 & 8: Kamar saja, tanpa tulisan IPS
+        return kStr.startsWith("Kamar") ? kStr : `Kamar ${kStr}`;
       }
     };
 
@@ -977,7 +975,6 @@
             <div className="flex items-center gap-1.5 font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-feedback-success inline-block animate-pulse"></span>
               <span className="text-brand-primary font-semibold">Presensi Asrama (Sakit/Izin/Alpa)</span>
-              <span className="hidden sm:inline">• Pak Mufti</span>
             </div>
             <div className="flex items-center gap-2">
               <button 
@@ -1078,7 +1075,7 @@
                           Kirim Rekap ke WhatsApp:
                         </strong>
                         <p className="text-[11px] text-emerald-700 mt-0.5">
-                          Kirim otomatis ke <strong>08935603130</strong> (Pak Mufti / Pengurus).
+                          Kirim otomatis ke <strong>08935603130</strong>.
                         </p>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
@@ -1183,9 +1180,11 @@
                         }`}
                       >
                         <div className="font-bold text-xs sm:text-sm">{k}</div>
-                        <div className={`text-[11px] font-medium mt-0.5 ${isSelected ? "text-sky-300" : "text-neutral-text_muted"}`}>
-                          {asramaName}
-                        </div>
+                        {asramaName ? (
+                          <div className={`text-[11px] font-medium mt-0.5 ${isSelected ? "text-sky-300" : "text-neutral-text_muted"}`}>
+                            {asramaName}
+                          </div>
+                        ) : null}
                         {countInClass > 0 && (
                           <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded-full font-bold shadow-xs">
                             {countInClass}
@@ -1201,14 +1200,14 @@
               <div className="gform-card bg-white border border-neutral-border rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm sm:text-base font-semibold text-brand-primary">
-                    2. Nomor Kamar ({ASRAMA_CONFIG[kelas]?.asrama} • {kelas})
+                    2. Nomor Kamar {ASRAMA_CONFIG[kelas]?.asrama ? `(${ASRAMA_CONFIG[kelas]?.asrama})` : `(${kelas})`}
                   </label>
                   <span className="text-xs text-neutral-text_muted font-medium">
                     {availableRooms.length} Kamar
                   </span>
                 </div>
                 <p className="text-xs text-neutral-text_muted mb-3">
-                  Klik kamar di {ASRAMA_CONFIG[kelas]?.asrama} untuk memilih santri. Santri dari kamar lain tetap tersimpan di daftar.
+                  Klik kamar untuk memilih santri. Santri dari kamar lain tetap tersimpan di daftar.
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1238,7 +1237,7 @@
                           )}
                         </div>
                         <span className={`text-[11px] mt-1 ${isSelected ? "text-slate-300" : "text-neutral-text_muted"}`}>
-                          {ASRAMA_CONFIG[kelas]?.asrama} • {countRoster} santri
+                          {ASRAMA_CONFIG[kelas]?.asrama ? `${ASRAMA_CONFIG[kelas]?.asrama} • ` : ""}{countRoster} santri
                         </span>
                       </button>
                     );
@@ -1733,13 +1732,6 @@
                   Kosongkan daftar
                 </button>
               </div>
-
-              <div className="text-center text-xs text-neutral-text_muted pt-4">
-                <p>Formulir internal asrama & UKS.</p>
-                <p className="mt-0.5 font-mono text-[11px]">
-                  {gasUrl ? "Google Sheets Terhubung (Otomatis Pisah Tab Kelas 7, 8, 9)" : "Mode Offline / Lokal"}
-                </p>
-              </div>
             </form>
           )}
 
@@ -1798,7 +1790,7 @@
                       className="w-full p-2.5 bg-neutral-surface border border-neutral-border rounded-lg text-xs font-mono focus:outline-none focus:border-brand-primary"
                     />
                     <p className="mt-1 text-[11px] text-neutral-text_muted">
-                      Default dikirim ke <strong>08935603130</strong> (Pak Mufti).
+                      Default dikirim ke <strong>08935603130</strong>.
                     </p>
                   </div>
 

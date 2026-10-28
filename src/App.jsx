@@ -75,8 +75,8 @@ const CATATAN_ALPA_PRESETS = [
 ];
 
 const ASRAMA_CONFIG = {
-  "Kelas 7": { asrama: "IPS 2", label: "Kelas 7 (IPS 2)" },
-  "Kelas 8": { asrama: "IPS 2", label: "Kelas 8 (IPS 2)" },
+  "Kelas 7": { asrama: "", label: "Kelas 7" },
+  "Kelas 8": { asrama: "", label: "Kelas 8" },
   "Kelas 9": { asrama: "IPS Lt 3", label: "Kelas 9 (IPS Lt 3)" }
 };
 
@@ -85,11 +85,9 @@ const formatKamarAsrama = (kelas, kamar) => {
   if ((kelas || "").includes("9")) {
     const num = kStr.replace(/^kamar\s*/i, "").trim();
     return `IPS Lt 3 - Kamar ${num}`;
-  } else if ((kelas || "").includes("8")) {
-    return `IPS 2 - Kamar ${kStr}`;
   } else {
-    // Kelas 7
-    return `IPS 2 - Kamar ${kStr}`;
+    // Kelas 7 & 8: Kamar saja, tanpa tulisan IPS
+    return kStr.startsWith("Kamar") ? kStr : `Kamar ${kStr}`;
   }
 };
 
@@ -607,7 +605,6 @@ export default function App() {
           <div className="flex items-center gap-1.5 font-medium">
             <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block animate-pulse"></span>
             <span className="text-[#0F172A] font-semibold">Presensi Asrama (Sakit/Izin/Alpa)</span>
-            <span className="hidden sm:inline">• Pak Mufti</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -717,7 +714,7 @@ export default function App() {
                         <span>Kirim Rekap ke WhatsApp:</span>
                       </strong>
                       <p className="text-[11px] text-emerald-700 mt-0.5">
-                        Kirim otomatis ke <strong>08935603130</strong> (Pak Mufti / Pengurus).
+                        Kirim otomatis ke <strong>08935603130</strong>.
                       </p>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -825,9 +822,11 @@ export default function App() {
                       }`}
                     >
                       <div className="font-bold text-xs sm:text-sm">{k}</div>
-                      <div className={`text-[11px] font-medium mt-0.5 ${isSelected ? "text-sky-300" : "text-[#64748B]"}`}>
-                        {asramaName}
-                      </div>
+                      {asramaName ? (
+                        <div className={`text-[11px] font-medium mt-0.5 ${isSelected ? "text-sky-300" : "text-[#64748B]"}`}>
+                          {asramaName}
+                        </div>
+                      ) : null}
                       {countInClass > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded-full font-bold shadow-xs">
                           {countInClass}
@@ -843,14 +842,14 @@ export default function App() {
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm focus-within:border-l-4 focus-within:border-l-[#0F172A] transition-all">
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm sm:text-base font-semibold text-[#0F172A]">
-                  2. Nomor Kamar ({ASRAMA_CONFIG[kelas]?.asrama} • {kelas})
+                  2. Nomor Kamar {ASRAMA_CONFIG[kelas]?.asrama ? `(${ASRAMA_CONFIG[kelas]?.asrama})` : `(${kelas})`}
                 </label>
                 <span className="text-xs text-[#64748B] font-medium">
                   {availableRooms.length} Kamar
                 </span>
               </div>
               <p className="text-xs text-[#64748B] mb-3">
-                Klik kamar di gedung {ASRAMA_CONFIG[kelas]?.asrama} untuk memilih santri. Santri dari kamar lain tetap tersimpan di daftar.
+                Klik kamar untuk memilih santri. Santri dari kamar lain tetap tersimpan di daftar.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -880,7 +879,7 @@ export default function App() {
                         )}
                       </div>
                       <span className={`text-[11px] mt-1 ${isSelected ? "text-slate-300" : "text-[#64748B]"}`}>
-                        {ASRAMA_CONFIG[kelas]?.asrama} • {countRoster} santri
+                        {ASRAMA_CONFIG[kelas]?.asrama ? `${ASRAMA_CONFIG[kelas]?.asrama} • ` : ""}{countRoster} santri
                       </span>
                     </button>
                   );
@@ -1394,13 +1393,6 @@ export default function App() {
                 Kosongkan daftar
               </button>
             </div>
-
-            <div className="text-center text-xs text-[#64748B] pt-4">
-              <p>Formulir internal asrama & UKS.</p>
-              <p className="mt-0.5 font-mono text-[11px]">
-                {gasUrl ? "Google Sheets Terhubung (Otomatis Pisah Tab Kelas)" : "Mode Offline / Lokal"}
-              </p>
-            </div>
           </form>
         )}
 
@@ -1466,7 +1458,7 @@ export default function App() {
                     className="w-full p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs font-mono focus:outline-none focus:border-[#0F172A]"
                   />
                   <p className="mt-1 text-[11px] text-[#64748B]">
-                    Default terkirim ke <strong>08935603130</strong> (Pak Mufti).
+                    Default terkirim ke <strong>08935603130</strong>.
                   </p>
                 </div>
 
