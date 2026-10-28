@@ -1,25 +1,31 @@
 /**
  * ============================================================================
  * GOOGLE APPS SCRIPT - PRESENSI SANTRI ASRAMA (SAKIT, IZIN, ALPA)
- * Versi 5.0 (Pemisahan Tab Kelas 7, 8, 9, Multi-Asrama/Kamar, Sesi Pagi & Malam)
+ * Versi 6.0 (Sheet Baru Otomatis Per Laporan, KOP Judul SMP, Kotak Per Asrama)
  * Untuk: Faris, Zahran & Pengurus Kamar Asrama
- * Nomor WhatsApp Tujuan: 08935603130 (628935603130)
  * ============================================================================
  * 
- * PENTING: Sebelum menempelkan kode ini ke Apps Script:
- * 1. Buka Google Sheets Anda > Menu Extensions (Ekstensi) > Apps Script.
+ * CARA MEMPERBARUI DI GOOGLE APPS SCRIPT:
+ * 1. Buka Google Spreadsheet Anda > Extensions (Ekstensi) > Apps Script.
  * 2. HAPUS SEMUA teks bawaan di editor Apps Script (Ctrl+A lalu Delete)
  *    sehingga halamannya benar-benar kosong bersih.
  * 3. Paste SEMUA isi file ini dari baris 1 sampai baris terakhir.
  * 4. Klik icon Save (Ctrl+S).
- * 5. Klik Deploy (Terapkan) > New deployment (Penerapan baru) > Web app:
- *    - Execute as: Me (email Anda)
- *    - Who has access: Anyone (Siapa saja)
- *    - Klik Deploy dan salin link Web App yang berakhiran /exec.
+ * 5. Klik Deploy (Terapkan) > Manage deployments (Kelola penerapan) > Edit (ikon pensil):
+ *    - Version: New version (Versi baru)
+ *    - Klik Deploy.
+ *    (Atau Deploy > New deployment > Web app > Anyone > Deploy).
  */
 
 const NAMA_SHEET_MASTER = "Semua Riwayat";
-const DAFTAR_KELAS_TABS = ["Kelas 7", "Kelas 8", "Kelas 9"];
+const NAMA_BULAN_INDO = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+const NAMA_BULAN_PENDEK = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+];
 
 /**
  * 1. FUNGSI MENAMPILKAN STATUS SERVER (GET)
@@ -31,7 +37,7 @@ function doGet(e) {
     
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Server Google Apps Script Presensi Asrama Aktif!",
+      message: "Server Google Apps Script Presensi Asrama (v6.0) Aktif!",
       spreadsheetUrl: sheetUrl,
       timestamp: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
@@ -46,54 +52,64 @@ function doGet(e) {
 
 /**
  * 2. FUNGSI PENERIMA DATA FORMULIR (POST)
- * Otomatis memisahkan ke Tab Harian, Tab Kelas (Kelas 7 / 8 / 9), dan Tab Master
+ * Otomatis membuat SHEET BARU per laporan, KOP Judul SMP, dan memisahkan per kotak asrama
  */
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.tryLock(20000); // Kunci 20 detik untuk multi-data
+  lock.tryLock(25000); // Kunci 25 detik untuk pemrosesan batch
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     if (!ss) {
-      throw new Error("Spreadsheet tidak ditemukan! Buka script ini dari menu Extensions > Apps Script di Google Sheets.");
+      throw new Error("Spreadsheet tidak ditemukan! Pastikan script dibuka dari menu Extensions > Apps Script di Google Sheets.");
     }
 
     // Parsing data dari request
     let data = {};
     if (!e) {
-      // Data simulasi jika dijalankan manual dari editor
+      // Data simulasi jika dites langsung dari editor
       data = {
         sesi: "Pagi",
+        namaPelapor: "Faris & Zahran",
+        keterangan: "Pengecekan rutin asrama pagi hari",
         santriItems: [
           {
-            kelas: "Kelas 7",
-            kamar: "1.01",
-            namaSantri: "Ahmad Mushtofa Kamal (Simulasi)",
-            statusKehadiran: "Sakit",
-            sakit: "Demam / Badan Panas",
-            rincianSakit: "Suhu 38.0°C",
-            obat: "Paracetamol 500mg",
+            kelas: "Kelas 9",
+            kamar: "IPS Lt 3 - Kamar 2",
+            namaSantri: "Zahran Yasser Hamzah",
+            statusKehadiran: "Alpa",
+            sakit: "Tidak berada di kamar saat jam presensi",
+            rincianSakit: "Tanpa surat izin",
+            obat: "-",
             dariKapan: "Hari Ini (Pagi)",
-            lokasi: "Istirahat di Kamar Asrama",
-            suhuTubuh: "38.0°C",
-            namaPelapor: "Faris & Zahran"
+            lokasi: "Tidak Berada di Kamar (Alpa)",
+            suhuTubuh: "-"
           },
           {
-            kelas: "Kelas 9",
-            kamar: "Kamar 2",
-            namaSantri: "Zahran Yasser Hamzah (Simulasi)",
-            statusKehadiran: "Alpa",
-            sakit: "Belum kembali ke kamar saat presensi",
-            rincianSakit: "-",
+            kelas: "Kelas 8",
+            kamar: "Kamar 3.01",
+            namaSantri: "Alvin Kurniawan",
+            statusKehadiran: "Sakit",
+            sakit: "Demam / Badan Panas, Pusing",
+            rincianSakit: "Kepala terasa berat sejak semalam",
+            obat: "Paracetamol 500mg (1 tablet)",
+            dariKapan: "Kemarin Malam",
+            lokasi: "Istirahat di Kamar Asrama",
+            suhuTubuh: "38.2°C"
+          },
+          {
+            kelas: "Kelas 7",
+            kamar: "Kamar 1.01",
+            namaSantri: "Ahmad Mushtofa Kamal",
+            statusKehadiran: "Izin",
+            sakit: "Izin Pulang ke Rumah (Dijemput Orang Tua)",
+            rincianSakit: "Keperluan keluarga",
             obat: "-",
-            dariKapan: "-",
-            lokasi: "Tidak Berada di Kamar (Alpa)",
-            suhuTubuh: "-",
-            namaPelapor: "Faris & Zahran"
+            dariKapan: "Hari Ini (Pagi)",
+            lokasi: "Istirahat di Rumah (Izin Pulang)",
+            suhuTubuh: "-"
           }
-        ],
-        keterangan: "Pengecekan lintas asrama",
-        namaPelapor: "Faris & Zahran"
+        ]
       };
     } else if (e.postData && e.postData.contents) {
       try {
@@ -107,152 +123,358 @@ function doPost(e) {
 
     const now = new Date();
     const formattedTimestamp = Utilities.formatDate(now, "Asia/Jakarta", "dd/MM/yyyy HH:mm:ss");
-    const tglHariIni = Utilities.formatDate(now, "Asia/Jakarta", "dd-MM-yyyy");
+    const tglNomor = now.getDate();
+    const bulanIndex = now.getMonth();
+    const tahunNomor = now.getFullYear();
+    const namaBulanPanjang = NAMA_BULAN_INDO[bulanIndex];
+    const namaBulanPendek = NAMA_BULAN_PENDEK[bulanIndex];
+    const tanggalPanjang = tglNomor + " " + namaBulanPanjang + " " + tahunNomor;
+    const sesi = data.sesi || "Pagi";
+    const namaPelapor = (data.namaPelapor || data.checker || "Pengurus Asrama").trim();
+    const catatanUmum = (data.keterangan || data.catatanKamar || "-").trim();
 
-    // 1. Siapkan Tab Tanggal Hari Ini
-    const namaTabHarian = tglHariIni;
-    let sheetHarian = ss.getSheetByName(namaTabHarian);
-    if (!sheetHarian) {
-      sheetHarian = ss.insertSheet(namaTabHarian, 0); // Di urutan pertama
-      buatHeaderKolom(sheetHarian, "REKAP HARIAN - " + namaTabHarian);
+    // Normalisasi array santri
+    let santriList = [];
+    if (Array.isArray(data.santriItems) && data.santriItems.length > 0) {
+      santriList = data.santriItems;
+    } else if (data.namaSantri) {
+      santriList = [{
+        kelas: data.kelas || "Kelas 9",
+        kamar: data.kamar || "-",
+        namaSantri: data.namaSantri,
+        statusKehadiran: data.statusKehadiran || data.status || "Sakit",
+        sakit: data.sakit || data.keluhan || "-",
+        rincianSakit: data.rincianSakit || data.rincianGejala || "-",
+        obat: data.obat || "-",
+        dariKapan: data.dariKapan || data.sejak || "-",
+        lokasi: data.lokasi || "-",
+        suhuTubuh: data.suhuTubuh || data.suhu || "-",
+        catatan: catatanUmum
+      }];
     }
 
-    // 2. Siapkan Tab Master Rekapitulasi
+    if (santriList.length === 0) {
+      throw new Error("Tidak ada data santri yang dikirimkan.");
+    }
+
+    // ========================================================================
+    // TAHAP 1: BUAT SHEET BARU PER LAPORAN (Posisi Paling Depan)
+    // ========================================================================
+    const jamMenitStr = Utilities.formatDate(now, "Asia/Jakarta", "HH.mm");
+    let namaTabBase = tglNomor + " " + namaBulanPendek + " " + tahunNomor + " - " + sesi;
+    let namaTabBaru = namaTabBase;
+    let counter = 1;
+
+    // Jika tab dengan nama tersebut sudah ada, beri tambahan waktu/angka
+    while (ss.getSheetByName(namaTabBaru)) {
+      counter++;
+      namaTabBaru = namaTabBase + " (" + jamMenitStr + (counter > 2 ? " #" + counter : "") + ")";
+    }
+
+    const sheetBaru = ss.insertSheet(namaTabBaru, 0); // Selalu letakkan di paling awal
+    ss.setActiveSheet(sheetBaru);
+
+    // ========================================================================
+    // TAHAP 2: BANGUN KOP JUDUL LAPORAN SMP (Bulan & Tanggal)
+    // ========================================================================
+    const TOTAL_KOLOM = 10;
+
+    // Baris 1: Judul Utama
+    const rangeJudul = sheetBaru.getRange(1, 1, 1, TOTAL_KOLOM);
+    rangeJudul.merge();
+    rangeJudul.setValue("LAPORAN REKAPITULASI SANTRI SAKIT SMP");
+    rangeJudul.setBackground("#0F172A"); // Dark Slate
+    rangeJudul.setFontColor("#FFFFFF");
+    rangeJudul.setFontWeight("bold");
+    rangeJudul.setFontSize(14);
+    rangeJudul.setHorizontalAlignment("center");
+    rangeJudul.setVerticalAlignment("middle");
+    sheetBaru.setRowHeight(1, 42);
+
+    // Baris 2: Sub-KOP Bulan, Tanggal & Sesi
+    const rangeSubJudul = sheetBaru.getRange(2, 1, 1, TOTAL_KOLOM);
+    rangeSubJudul.merge();
+    rangeSubJudul.setValue("Bulan: " + namaBulanPanjang + " " + tahunNomor + "  |  Tanggal: " + tanggalPanjang + "  |  Sesi Laporan: " + sesi);
+    rangeSubJudul.setBackground("#1E293B"); // Slate medium
+    rangeSubJudul.setFontColor("#38BDF8"); // Sky Blue
+    rangeSubJudul.setFontWeight("bold");
+    rangeSubJudul.setFontSize(11);
+    rangeSubJudul.setHorizontalAlignment("center");
+    rangeSubJudul.setVerticalAlignment("middle");
+    sheetBaru.setRowHeight(2, 28);
+
+    // Baris 3: Info Waktu Kirim & Petugas Pemeriksa
+    const rangeInfo = sheetBaru.getRange(3, 1, 1, TOTAL_KOLOM);
+    rangeInfo.merge();
+    rangeInfo.setValue("Waktu Kirim: " + formattedTimestamp + " WIB   •   Petugas Pemeriksa: " + namaPelapor + "   •   Total Dilaporkan: " + santriList.length + " Santri");
+    rangeInfo.setBackground("#F1F5F9");
+    rangeInfo.setFontColor("#475569");
+    rangeInfo.setFontSize(10);
+    rangeInfo.setHorizontalAlignment("center");
+    rangeInfo.setVerticalAlignment("middle");
+    sheetBaru.setRowHeight(3, 24);
+
+    // Baris 4: Kosong pemisah
+    sheetBaru.setRowHeight(4, 10);
+
+    // Baris 5: Kotak Ringkasan Status Santri
+    let countSakit = 0;
+    let countIzin = 0;
+    let countAlpa = 0;
+    santriList.forEach(function(s) {
+      const st = (s.statusKehadiran || s.status || "").toLowerCase();
+      if (st.includes("sakit")) countSakit++;
+      else if (st.includes("izin")) countIzin++;
+      else countAlpa++;
+    });
+
+    const boxSakit = sheetBaru.getRange("A5:B5");
+    boxSakit.merge().setValue("TOTAL SAKIT: " + countSakit + " Santri")
+      .setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, false, false, "#EF4444", SpreadsheetApp.BorderStyle.SOLID);
+
+    const boxIzin = sheetBaru.getRange("C5:D5");
+    boxIzin.merge().setValue("TOTAL IZIN: " + countIzin + " Santri")
+      .setBackground("#FEF3C7").setFontColor("#92400E").setFontWeight("bold")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, false, false, "#F59E0B", SpreadsheetApp.BorderStyle.SOLID);
+
+    const boxAlpa = sheetBaru.getRange("E5:F5");
+    boxAlpa.merge().setValue("TOTAL ALPA: " + countAlpa + " Santri")
+      .setBackground("#F3E8FF").setFontColor("#6B21A8").setFontWeight("bold")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, false, false, "#A855F7", SpreadsheetApp.BorderStyle.SOLID);
+
+    const boxTotal = sheetBaru.getRange("G5:J5");
+    boxTotal.merge().setValue("TOTAL KESELURUHAN: " + santriList.length + " Santri")
+      .setBackground("#E2E8F0").setFontColor("#0F172A").setFontWeight("bold")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setBorder(true, true, true, true, false, false, "#94A3B8", SpreadsheetApp.BorderStyle.SOLID);
+
+    sheetBaru.setRowHeight(5, 30);
+    sheetBaru.setRowHeight(6, 16); // Jeda sebelum kotak data
+
+    // ========================================================================
+    // TAHAP 3: PENGELOMPOKKAN PER KOTAK ASRAMA
+    // ========================================================================
+    // Kelompokkan santri berdasarkan gedung / jenjang:
+    // 1. Kelas 9 (Asrama IPS Lt 3)
+    // 2. Kelas 8
+    // 3. Kelas 7
+    // 4. Lainnya (jika ada)
+
+    const kelompokMap = {};
+    const urutanKelompok = ["Kelas 9", "Kelas 8", "Kelas 7"];
+
+    santriList.forEach(function(item) {
+      const k = (item.kelas || "").trim();
+      let key = "Lainnya";
+      if (k.includes("9")) key = "Kelas 9";
+      else if (k.includes("8")) key = "Kelas 8";
+      else if (k.includes("7")) key = "Kelas 7";
+
+      if (!kelompokMap[key]) kelompokMap[key] = [];
+      kelompokMap[key].push(item);
+    });
+
+    let barisSaatIni = 7;
+    const headerKolomTabel = [
+      "No",
+      "Nama Santri",
+      "Kamar",
+      "Status",
+      "Keluhan / Penyakit / Alasan",
+      "Obat yang Diberikan",
+      "Mulai Sejak",
+      "Lokasi Istirahat",
+      "Suhu Tubuh",
+      "Catatan Tambahan"
+    ];
+
+    // Iterasi setiap kelompok untuk digambar sebagai KOTAK TERPISAH
+    const daftarKunci = Object.keys(kelompokMap).sort(function(a, b) {
+      const ia = urutanKelompok.indexOf(a);
+      const ib = urutanKelompok.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    daftarKunci.forEach(function(kategoriKey, indexKotak) {
+      const items = kelompokMap[kategoriKey];
+      if (!items || items.length === 0) return;
+
+      let namaHeaderKotak = "";
+      let warnaBanner = "#1E293B"; // Dark Slate
+      if (kategoriKey === "Kelas 9") {
+        namaHeaderKotak = "KOTAK DATA: KELAS 9 • ASRAMA IPS LT 3 (" + items.length + " Santri Dilaporkan)";
+        warnaBanner = "#0F172A"; // Slate gelap
+      } else if (kategoriKey === "Kelas 8") {
+        namaHeaderKotak = "KOTAK DATA: KELAS 8 (" + items.length + " Santri Dilaporkan)";
+        warnaBanner = "#1E293B";
+      } else if (kategoriKey === "Kelas 7") {
+        namaHeaderKotak = "KOTAK DATA: KELAS 7 (" + items.length + " Santri Dilaporkan)";
+        warnaBanner = "#1E293B";
+      } else {
+        namaHeaderKotak = "KOTAK DATA: " + kategoriKey.toUpperCase() + " (" + items.length + " Santri)";
+        warnaBanner = "#334155";
+      }
+
+      const barisMulaiKotak = barisSaatIni;
+
+      // 1. Baris Judul Kotak (Banner Kotak)
+      const rangeBanner = sheetBaru.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+      rangeBanner.merge();
+      rangeBanner.setValue(namaHeaderKotak);
+      rangeBanner.setBackground(warnaBanner);
+      rangeBanner.setFontColor("#FFFFFF");
+      rangeBanner.setFontWeight("bold");
+      rangeBanner.setFontSize(11);
+      rangeBanner.setVerticalAlignment("middle");
+      rangeBanner.setHorizontalAlignment("left");
+      sheetBaru.setRowHeight(barisSaatIni, 32);
+      barisSaatIni++;
+
+      // 2. Baris Header Kolom Tabel di dalam Kotak
+      const rangeHeaderKotak = sheetBaru.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+      rangeHeaderKotak.setValues([headerKolomTabel]);
+      rangeHeaderKotak.setBackground("#334155"); // Steel slate
+      rangeHeaderKotak.setFontColor("#FFFFFF");
+      rangeHeaderKotak.setFontWeight("bold");
+      rangeHeaderKotak.setFontSize(10);
+      rangeHeaderKotak.setHorizontalAlignment("center");
+      rangeHeaderKotak.setVerticalAlignment("middle");
+      sheetBaru.setRowHeight(barisSaatIni, 28);
+      barisSaatIni++;
+
+      // 3. Baris-baris Data Santri
+      items.forEach(function(item, idx) {
+        const rowStatus = item.statusKehadiran || item.status || "Sakit";
+        const rowKamar = item.kamar || "-";
+        const rowData = [
+          idx + 1,
+          item.namaSantri || "-",
+          rowKamar,
+          rowStatus,
+          item.sakit || item.keluhan || item.alasan || "-",
+          item.obat || "-",
+          item.dariKapan || item.sejak || "-",
+          item.lokasi || "-",
+          item.suhuTubuh || item.suhu || "-",
+          item.rincianSakit || item.rincianGejala || item.catatan || "-"
+        ];
+
+        const rowRange = sheetBaru.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+        rowRange.setValues([rowData]);
+        rowRange.setVerticalAlignment("middle");
+        rowRange.setFontSize(10);
+        sheetBaru.setRowHeight(barisSaatIni, 26);
+
+        // Format kolom
+        sheetBaru.getRange(barisSaatIni, 1).setHorizontalAlignment("center"); // No
+        sheetBaru.getRange(barisSaatIni, 2).setFontWeight("bold"); // Nama
+        sheetBaru.getRange(barisSaatIni, 3).setHorizontalAlignment("center"); // Kamar
+        sheetBaru.getRange(barisSaatIni, 7).setHorizontalAlignment("center"); // Mulai Sejak
+        sheetBaru.getRange(barisSaatIni, 9).setHorizontalAlignment("center"); // Suhu
+
+        // Pewarnaan Badge Status (Kolom D)
+        const cellStatus = sheetBaru.getRange(barisSaatIni, 4);
+        cellStatus.setFontWeight("bold");
+        cellStatus.setHorizontalAlignment("center");
+
+        const stLower = rowStatus.toLowerCase();
+        if (stLower.includes("sakit")) {
+          cellStatus.setBackground("#FEE2E2");
+          cellStatus.setFontColor("#991B1B");
+        } else if (stLower.includes("izin")) {
+          cellStatus.setBackground("#FEF3C7");
+          cellStatus.setFontColor("#92400E");
+        } else if (stLower.includes("alpa")) {
+          cellStatus.setBackground("#F3E8FF");
+          cellStatus.setFontColor("#6B21A8");
+        }
+
+        // Zebra striping halus
+        if (idx % 2 === 1) {
+          sheetBaru.getRange(barisSaatIni, 1, 1, 3).setBackground("#F8FAFC");
+          sheetBaru.getRange(barisSaatIni, 5, 1, 6).setBackground("#F8FAFC");
+        }
+
+        barisSaatIni++;
+      });
+
+      // 4. Pasang Border Tebal Mengelilingi Kotak (Efek Card/Kotak)
+      const barisAkhirKotak = barisSaatIni - 1;
+      const rangeSeluruhKotak = sheetBaru.getRange(barisMulaiKotak, 1, barisAkhirKotak - barisMulaiKotak + 1, TOTAL_KOLOM);
+      rangeSeluruhKotak.setBorder(true, true, true, true, true, true, "#94A3B8", SpreadsheetApp.BorderStyle.SOLID);
+
+      // Jeda antar kotak
+      sheetBaru.setRowHeight(barisSaatIni, 16);
+      barisSaatIni++;
+    });
+
+    // Catatan Umum Pemeriksaan (Jika Ada)
+    if (catatanUmum && catatanUmum !== "-") {
+      const rangeCatatan = sheetBaru.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+      rangeCatatan.merge();
+      rangeCatatan.setValue("Catatan Tambahan Pemeriksaan Kamar: " + catatanUmum);
+      rangeCatatan.setBackground("#F8FAFC").setFontColor("#334155").setFontStyle("italic")
+        .setBorder(true, true, true, true, false, false, "#CBD5E1", SpreadsheetApp.BorderStyle.SOLID);
+      sheetBaru.setRowHeight(barisSaatIni, 30);
+      barisSaatIni++;
+    }
+
+    // Set Lebar Kolom Ideal agar terbaca rapi tanpa terpotong
+    sheetBaru.setColumnWidth(1, 45);  // No
+    sheetBaru.setColumnWidth(2, 220); // Nama Santri
+    sheetBaru.setColumnWidth(3, 140); // Kamar
+    sheetBaru.setColumnWidth(4, 95);  // Status
+    sheetBaru.setColumnWidth(5, 230); // Keluhan
+    sheetBaru.setColumnWidth(6, 170); // Obat
+    sheetBaru.setColumnWidth(7, 130); // Mulai Sejak
+    sheetBaru.setColumnWidth(8, 170); // Lokasi
+    sheetBaru.setColumnWidth(9, 85);  // Suhu
+    sheetBaru.setColumnWidth(10, 200); // Catatan
+
+    // ========================================================================
+    // TAHAP 4: SIMPAN KE TAB MASTER (Semua Riwayat - Arsip Permanen)
+    // ========================================================================
     let sheetMaster = ss.getSheetByName(NAMA_SHEET_MASTER);
     if (!sheetMaster) {
       sheetMaster = ss.insertSheet(NAMA_SHEET_MASTER);
-      buatHeaderKolom(sheetMaster, "REKAPITULASI SEMUA DATA ASRAMA");
+      buatHeaderKolomMaster(sheetMaster);
     }
 
-    // Helper untuk mengambil sheet kelas tertentu (Kelas 7, Kelas 8, Kelas 9)
-    function dapatkanSheetKelas(namaKelas) {
-      let target = (namaKelas || "").trim();
-      if (target.includes("7")) target = "Kelas 7";
-      else if (target.includes("8")) target = "Kelas 8";
-      else if (target.includes("9")) target = "Kelas 9";
+    santriList.forEach(function(item) {
+      const rowStatus = item.statusKehadiran || item.status || "Sakit";
+      const rowKelas = item.kelas || "-";
+      const rowKamar = item.kamar || "-";
 
-      let sheet = ss.getSheetByName(target);
-      if (!sheet) {
-        sheet = ss.insertSheet(target);
-        buatHeaderKolom(sheet, "DATA PRESENSI " + target.toUpperCase());
-      }
-      return sheet;
-    }
-
-    let itemsProcessed = 0;
-
-    // KASUS A: Array santriItems (banyak santri dari berbagai kamar/kelas)
-    if (Array.isArray(data.santriItems) && data.santriItems.length > 0) {
-      for (let i = 0; i < data.santriItems.length; i++) {
-        const item = data.santriItems[i];
-        const rowStatus = item.statusKehadiran || item.status || "Sakit";
-        const rowKelas = item.kelas || data.kelas || "Kelas 9";
-        const rowKamar = item.kamar || data.kamar || "-";
-        const rowSesi = item.sesi || data.sesi || "Pagi";
-
-        const rowData = [
-          formattedTimestamp,
-          rowSesi,
-          rowKelas,
-          rowKamar,
-          item.namaSantri || "-",
-          rowStatus,
-          item.sakit || item.alasan || "-",
-          item.rincianSakit || item.rincian || "-",
-          item.obat || "-",
-          item.dariKapan || "-",
-          item.lokasi || "-",
-          item.suhuTubuh || "-",
-          item.keterangan || data.keterangan || "-",
-          item.namaPelapor || data.namaPelapor || "-"
-        ];
-
-        // Tulis ke Tab Tanggal Harian
-        sheetHarian.appendRow(rowData);
-        formatBarisData(sheetHarian, rowStatus);
-
-        // Tulis ke Tab Kelas Spesifik (Kelas 7 / Kelas 8 / Kelas 9)
-        const sheetKelasSpesifik = dapatkanSheetKelas(rowKelas);
-        sheetKelasSpesifik.appendRow(rowData);
-        formatBarisData(sheetKelasSpesifik, rowStatus);
-
-        // Tulis ke Tab Master
-        sheetMaster.appendRow(rowData);
-        formatBarisData(sheetMaster, rowStatus);
-
-        itemsProcessed++;
-      }
-
-      return ContentService.createTextOutput(JSON.stringify({
-        status: "success",
-        message: itemsProcessed + " data santri berhasil dicatat ke Sheets (Tab Harian & Tab Kelas)!",
-        jumlahSantri: itemsProcessed,
-        tabHarian: namaTabHarian,
-        spreadsheetUrl: ss.getUrl()
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // KASUS B: Single record atau santriList tunggal
-    const singleStatus = data.statusKehadiran || data.status || "Sakit";
-    const singleKelas = data.kelas || "Kelas 9";
-    const singleKamar = data.kamar || "-";
-    const singleSesi = data.sesi || "Pagi";
-
-    let santriArr = [];
-    if (Array.isArray(data.santriList) && data.santriList.length > 0) {
-      santriArr = data.santriList;
-    } else if (Array.isArray(data.namaSantri) && data.namaSantri.length > 0) {
-      santriArr = data.namaSantri;
-    } else if (typeof data.namaSantri === "string" && data.namaSantri.trim()) {
-      if (data.namaSantri.includes(",")) {
-        santriArr = data.namaSantri.split(",").map(function(s) { return s.trim(); }).filter(Boolean);
-      } else {
-        santriArr = [data.namaSantri.trim()];
-      }
-    } else {
-      santriArr = ["-"];
-    }
-
-    for (let i = 0; i < santriArr.length; i++) {
-      const nama = santriArr[i];
-      const rowData = [
+      const rowMaster = [
         formattedTimestamp,
-        singleSesi,
-        singleKelas,
-        singleKamar,
-        nama,
-        singleStatus,
-        data.sakit || data.alasan || "-",
-        data.rincianSakit || data.rincian || "-",
-        data.obat || "-",
-        data.dariKapan || "-",
-        data.lokasi || "-",
-        data.suhuTubuh || "-",
-        data.keterangan || "-",
-        data.namaPelapor || "-"
+        sesi,
+        rowKelas,
+        rowKamar,
+        item.namaSantri || "-",
+        rowStatus,
+        item.sakit || item.keluhan || item.alasan || "-",
+        item.rincianSakit || item.rincianGejala || "-",
+        item.obat || "-",
+        item.dariKapan || item.sejak || "-",
+        item.lokasi || "-",
+        item.suhuTubuh || item.suhu || "-",
+        catatanUmum,
+        namaPelapor,
+        namaTabBaru
       ];
 
-      // Tulis ke tab harian
-      sheetHarian.appendRow(rowData);
-      formatBarisData(sheetHarian, singleStatus);
-
-      // Tulis ke tab kelas spesifik
-      const sheetKelasSpesifik = dapatkanSheetKelas(singleKelas);
-      sheetKelasSpesifik.appendRow(rowData);
-      formatBarisData(sheetKelasSpesifik, singleStatus);
-
-      // Tulis ke tab master
-      sheetMaster.appendRow(rowData);
-      formatBarisData(sheetMaster, singleStatus);
-
-      itemsProcessed++;
-    }
+      sheetMaster.appendRow(rowMaster);
+      formatBarisMaster(sheetMaster, rowStatus);
+    });
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: itemsProcessed + " data santri berhasil dicatat ke Sheets (Tab Harian & Tab " + singleKelas + ")!",
-      jumlahSantri: itemsProcessed,
-      tabHarian: namaTabHarian,
+      message: "Laporan berhasil dicatat di Sheet Baru: [" + namaTabBaru + "]!",
+      tabBaru: namaTabBaru,
+      jumlahSantri: santriList.length,
       spreadsheetUrl: ss.getUrl()
     })).setMimeType(ContentService.MimeType.JSON);
 
@@ -269,9 +491,9 @@ function doPost(e) {
 }
 
 /**
- * 3. FUNGSI PEMBUAT HEADER KOLOM LENGKAP
+ * 3. FUNGSI HEADER TAB MASTER ARSIP
  */
-function buatHeaderKolom(sheet, judulTab) {
+function buatHeaderKolomMaster(sheet) {
   const headers = [
     "Waktu Kirim",
     "Sesi",
@@ -286,12 +508,13 @@ function buatHeaderKolom(sheet, judulTab) {
     "Kondisi & Lokasi Saat Ini",
     "Suhu Tubuh",
     "Catatan Kamar",
-    "Petugas Pemeriksa"
+    "Petugas Pemeriksa",
+    "Sheet Laporan"
   ];
 
   const headerRange = sheet.getRange(1, 1, 1, headers.length);
   headerRange.setValues([headers]);
-  headerRange.setBackground("#0F172A"); // Slate Gelap
+  headerRange.setBackground("#0F172A");
   headerRange.setFontColor("#FFFFFF");
   headerRange.setFontWeight("bold");
   headerRange.setHorizontalAlignment("center");
@@ -305,84 +528,34 @@ function buatHeaderKolom(sheet, judulTab) {
 }
 
 /**
- * 4. FUNGSI FORMAT BARIS & PEWARNAAN STATUS
+ * 4. FUNGSI FORMAT BARIS TAB MASTER
  */
-function formatBarisData(sheet, status) {
+function formatBarisMaster(sheet, status) {
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
   const range = sheet.getRange(lastRow, 1, 1, lastCol);
   
   range.setVerticalAlignment("middle");
-  range.setFontFamily("Inter");
   sheet.setRowHeight(lastRow, 28);
 
-  // Pewarnaan status di kolom F (kolom ke-6)
   const cellStatus = sheet.getRange(lastRow, 6);
   cellStatus.setFontWeight("bold");
   cellStatus.setHorizontalAlignment("center");
 
   const st = (status || "").toLowerCase();
   if (st.includes("sakit")) {
-    cellStatus.setBackground("#FEE2E2"); // Merah muda lembut
+    cellStatus.setBackground("#FEE2E2");
     cellStatus.setFontColor("#991B1B");
   } else if (st.includes("izin")) {
-    cellStatus.setBackground("#FEF3C7"); // Kuning lembut
+    cellStatus.setBackground("#FEF3C7");
     cellStatus.setFontColor("#92400E");
   } else if (st.includes("alpa")) {
-    cellStatus.setBackground("#F3E8FF"); // Ungu lembut
+    cellStatus.setBackground("#F3E8FF");
     cellStatus.setFontColor("#6B21A8");
   }
 
-  // Zebra striping untuk baris
   if (lastRow % 2 === 0) {
     sheet.getRange(lastRow, 1, 1, 5).setBackground("#F8FAFC");
     sheet.getRange(lastRow, 7, 1, lastCol - 6).setBackground("#F8FAFC");
   }
-}
-
-/**
- * 5. FUNGSI SIMULASI UNTUK TES LANGSUNG DARI EDITOR
- */
-function testSimulasiKirim() {
-  Logger.log("Menjalankan simulasi multi-kelas multi-kamar...");
-  const dummyEvent = {
-    postData: {
-      contents: JSON.stringify({
-        sesi: "Pagi",
-        santriItems: [
-          {
-            kelas: "Kelas 7",
-            kamar: "1.01",
-            namaSantri: "Ahmad Mushtofa Kamal (Tes Kelas 7)",
-            statusKehadiran: "Sakit",
-            sakit: "Demam / Badan Panas",
-            rincianSakit: "Suhu 38.0°C",
-            obat: "Paracetamol 500mg",
-            dariKapan: "Hari Ini (Pagi)",
-            lokasi: "Istirahat di Kamar Asrama",
-            suhuTubuh: "38.0°C",
-            namaPelapor: "Faris & Zahran"
-          },
-          {
-            kelas: "Kelas 9",
-            kamar: "Kamar 2",
-            namaSantri: "Zahran Yasser Hamzah (Tes Kelas 9)",
-            statusKehadiran: "Alpa",
-            sakit: "Belum kembali ke kamar saat presensi",
-            rincianSakit: "-",
-            obat: "-",
-            dariKapan: "-",
-            lokasi: "Tidak Berada di Kamar (Alpa)",
-            suhuTubuh: "-",
-            namaPelapor: "Faris & Zahran"
-          }
-        ],
-        keterangan: "Pengecekan kamar pagi",
-        namaPelapor: "Faris & Zahran"
-      })
-    }
-  };
-
-  const hasil = doPost(dummyEvent);
-  Logger.log("Hasil: " + hasil.getContent());
 }

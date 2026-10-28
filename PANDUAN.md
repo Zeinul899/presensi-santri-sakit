@@ -1,110 +1,98 @@
-# Sistem Presensi Santri Asrama (Versi 5.0: Lintas Asrama & Pemisahan Tab Kelas)
+# Sistem Presensi Santri Asrama (Versi 6.0)
+## Sheet Baru Otomatis Per Laporan, KOP Judul SMP & Kotak Data Per Asrama
 
-Dokumentasi lengkap pembaruan sistem presensi asrama per kamar sesuai permintaan terbaru:
-- **Penamaan Asrama:** 
-  - **Kelas 9:** Asrama **IPS Lt 3** (Kamar 1 s.d. 5) -> format laporan: `IPS Lt 3 - Kamar [Nomor]`
-  - **Kelas 8:** **Kelas 8** (Kamar 3.01 s.d. 3.07) -> format laporan: `Kamar [Nomor]` (tanpa tulisan IPS)
-  - **Kelas 7:** **Kelas 7** (Kamar 1.01 s.d. 2.05) -> format laporan: `Kamar [Nomor]` (tanpa tulisan IPS)
-- **Tampilan Bersih:** 
-  - Tulisan `• Pak Mufti` di bar status telah dihapus.
-  - Teks footer `Formulir internal asrama & UKS.` dan `Google Sheets Terhubung (Otomatis Pisah Tab Kelas)` telah dihapus.
-- **Waktu Laporan:** Sesi **Pagi** dan **Malam**
-- **Lintas Kamar/Asrama:** Bisa memilih santri dari banyak kamar sekaligus tanpa hilang saat berpindah kamar
-- **Pemisahan Tab Google Sheets:** Otomatis memisahkan data ke tab **Kelas 7**, **Kelas 8**, **Kelas 9**, serta Tab Harian (`DD-MM-YYYY`) dan Tab Master (`Semua Riwayat`)
-- **Tujuan WhatsApp:** Otomatis ditujukan ke nomor **08935603130** (`628935603130`)
+Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
+- **Tautan Langsung Google Sheets:** [Buka Google Sheets Presensi](https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit)
+- **Aplikasi Web Presensi:**
+  - Versi React/Vite: `http://localhost:5174/`
+  - File HTML Mandiri: [standalone.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/standalone.html) / [absen-sakit.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit.html)
+- **Repositori GitHub:** [https://github.com/Zeinul899/presensi-santri-sakit](https://github.com/Zeinul899/presensi-santri-sakit)
 
 ---
 
-## 1. Pemilihan Santri Lintas Kamar / Asrama (Bisa > 1 Asrama Sekaligus)
+## 1. Ringkasan Perubahan Utama (Versi 6.0)
 
-Saat pengurus asrama berkeliling memeriksa kamar:
-1. Pilih **Kelas 7** > klik **1.01** > centang santri yang sakit.
-2. Pindah ke **1.02** > centang santri yang alpa.
-3. Pindah ke **Kelas 9** > klik **Kamar 2** > centang santri yang sakit.
-4. **Semua santri yang sudah dipilih dari kamar mana saja tetap tersimpan di daftar (tidak hilang saat ganti kamar)**.
-5. Pada Card 4 (Rincian Kondisi), setiap santri muncul dengan kartu masing-masing lengkap dengan label kamar asalnya (misal `Kelas 7 • 1.01`, `Kelas 9 • Kamar 2`).
-6. Cukup klik tombol **Kirim Laporan Semua Asrama** satu kali untuk mengirimkan semua data santri tersebut ke Google Sheets dan WhatsApp!
+1. **Penghapusan Fitur WhatsApp:**
+   - Tombol dan pengaturan WhatsApp telah dihapus sepenuhnya dari antarmuka formulir.
+   - Digantikan dengan tombol langsung **"Buka Sheets"** di bar atas dan **"Buka Spreadsheet Google Sheets"** serta **"Salin Link Sheets"** pada layar konfirmasi pengiriman.
+2. **Sheet / Tab Baru Otomatis Setiap Kirim Laporan:**
+   - Setiap kali petugas menekan tombol *Kirim Laporan*, Google Apps Script akan secara otomatis membuat sebuah **Tab Baru di posisi paling depan (index 0)**.
+   - Penamaan Tab Otomatis: Contoh `28 Okt 2026 - Pagi`, `28 Okt 2026 - Malam`. Jika ada sesi susulan di waktu yang sama, otomatis diberi stempel jam (contoh `28 Okt 2026 - Pagi (14.50)`).
+3. **KOP Judul Resmi SMP:**
+   - Bagian atas sheet baru memuat KOP resmi:
+     - Baris 1: **LAPORAN REKAPITULASI SANTRI SAKIT SMP** (Banner slate gelap, font tebal).
+     - Baris 2: Sub-KOP memuat: `Bulan: [Nama Bulan] [Tahun] | Tanggal: [DD-MM-YYYY] | Sesi: [Pagi/Malam]`.
+     - Baris 3: Info `Waktu Kirim | Petugas Pemeriksa | Total Dilaporkan`.
+     - Baris 5: 4 Kotak Ringkasan Cepat: **TOTAL SAKIT**, **TOTAL IZIN**, **TOTAL ALPA**, dan **TOTAL KESELURUHAN**.
+4. **Data Terpisah "Per Kotak" Berdasarkan Asrama:**
+   - Santri yang dilaporkan tidak dicampur aduk dalam satu tabel panjang, melainkan dipisah menjadi **Kotak-kotak Data Terpisah** dengan garis batas solid mengelilingi kotak:
+     - **KOTAK DATA: KELAS 9 • ASRAMA IPS LT 3**
+     - **KOTAK DATA: KELAS 8**
+     - **KOTAK DATA: KELAS 7**
+   - Setiap kotak memiliki header kolom lengkap: `No | Nama Santri | Kamar | Status | Keluhan / Penyakit / Alasan | Obat yang Diberikan | Mulai Sejak | Lokasi Istirahat | Suhu Tubuh | Catatan Tambahan`.
+5. **Penamaan Kamar Asrama yang Presisi:**
+   - **Kelas 9:** Khusus mencantumkan `IPS Lt 3 - Kamar [Nomor]` (Kamar 1 s.d. 5).
+   - **Kelas 8 & 7:** Hanya menampilkan `Kamar [Nomor]` (tanpa tulisan IPS).
+6. **Penyimpanan Permanen (Master Sheet):**
+   - Selain membuat tab baru per sesi, seluruh data juga dicatat secara permanen di tab **`Semua Riwayat`** sebagai arsip lengkap.
 
 ---
 
-## 2. Struktur Tab di Google Sheets (Versi 5.0)
+## 2. Struktur Tampilan Sheet Baru di Google Sheets
 
-Dengan skrip terbaru di [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs), spreadsheet Anda otomatis tertata rapi dengan tab-tab berikut:
-
-```mermaid
-flowchart TD
-    Form["Formulir Web Presensi"] --> Post["Google Apps Script (POST)"]
-    Post --> Daily["Tab Harian (contoh: 28-10-2026)"]
-    Post --> K7["Tab 'Kelas 7' (Semua kamar 1.01 - 2.05)"]
-    Post --> K8["Tab 'Kelas 8' (Semua kamar 3.01 - 3.07)"]
-    Post --> K9["Tab 'Kelas 9' (Semua kamar 1 - 5)"]
-    Post --> Master["Tab 'Semua Riwayat' (Arsip Permanen)"]
 ```
++--------------------------------------------------------------------------------------------------+
+|                              LAPORAN REKAPITULASI SANTRI SAKIT SMP                               |
++--------------------------------------------------------------------------------------------------+
+| Bulan: Oktober 2026   |   Tanggal: 28 Oktober 2026   |   Sesi Laporan: Pagi                      |
++--------------------------------------------------------------------------------------------------+
+| Waktu Kirim: 28/10/2026 14:50:00 WIB  •  Petugas Pemeriksa: Faris  •  Total: 3 Santri            |
++--------------------------------------------------------------------------------------------------+
+| [TOTAL SAKIT: 1]  |  [TOTAL IZIN: 1]  |  [TOTAL ALPA: 1]  |  [TOTAL KESELURUHAN: 3 SANTRI]       |
++--------------------------------------------------------------------------------------------------+
 
-- **Tab `Kelas 7`:** Khusus merekap santri kamar 1.01 sampai 2.05.
-- **Tab `Kelas 8`:** Khusus merekap santri kamar 3.01 sampai 3.07.
-- **Tab `Kelas 9`:** Khusus merekap santri Kamar 1 sampai Kamar 5.
-- **Tab Harian (`28-10-2026`):** Rekap seluruh santri hari ini dari semua kelas dan kamar.
-- **Tab Master (`Semua Riwayat`):** Seluruh rekaman presensi asrama sepanjang masa.
++--------------------------------------------------------------------------------------------------+
+| KOTAK DATA: KELAS 9 • ASRAMA IPS LT 3 (1 Santri Dilaporkan)                                      |
++----+-----------------------+---------------------+--------+------------------------+-------------+
+| No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
++----+-----------------------+---------------------+--------+------------------------+-------------+
+| 1  | Zahran Yasser Hamzah  | IPS Lt 3 - Kamar 2  | ALPA   | Belum kembali ke kamar | -           |
++----+-----------------------+---------------------+--------+------------------------+-------------+
 
-Setiap tab memiliki kolom identitas lengkap:
-`Waktu Kirim | Sesi (Pagi/Malam) | Kelas | Kamar | Nama Santri | Status Presensi | Sakit / Alasan | Rincian Gejala | Obat yang Diberikan | Mulai Sakit/Izin Sejak | Kondisi & Lokasi | Suhu Tubuh | Catatan Kamar | Petugas Pemeriksa`
++--------------------------------------------------------------------------------------------------+
+| KOTAK DATA: KELAS 8 (1 Santri Dilaporkan)                                                        |
++----+-----------------------+---------------------+--------+------------------------+-------------+
+| No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
++----+-----------------------+---------------------+--------+------------------------+-------------+
+| 1  | Alvin Kurniawan       | Kamar 3.01          | SAKIT  | Demam / Badan Panas    | Paracetamol |
++----+-----------------------+---------------------+--------+------------------------+-------------+
 
----
-
-## 3. Format Rekap Pesan WhatsApp ke 08935603130
-
-Pesan WhatsApp otomatis dikelompokkan berdasarkan asrama/kamar tanpa emoji:
-
-```text
-LAPORAN PRESENSI ASRAMA - PAGI
-----------------------------------------
-Waktu Lapor: 28/10/2026, 14:40 WIB
-Petugas Pemeriksa: Faris & Zahran
-Total Santri Dilaporkan: 2 Anak (2 Kamar)
-----------------------------------------
-RINCIAN DATA SANTRI PER ASRAMA:
-
-[KELAS 7 - 1.01]
-1. Ahmad Mushtofa Kamal [SAKIT]
-   - Keluhan: Demam / Badan Panas
-   - Obat: Paracetamol 500mg
-   - Mulai Sakit: Hari Ini (Pagi)
-   - Lokasi: Istirahat di Kamar Asrama
-   - Suhu: 37.9°C
-
-[KELAS 9 - KAMAR 2]
-2. Zahran Yasser Hamzah [ALPA]
-   - Keterangan Alpa: Belum kembali ke kamar saat presensi
-   - Lokasi: Tidak Berada di Kamar (Alpa)
-
-----------------------------------------
-Link Rekap Google Sheets:
-https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit
++--------------------------------------------------------------------------------------------------+
+| KOTAK DATA: KELAS 7 (1 Santri Dilaporkan)                                                        |
++----+-----------------------+---------------------+--------+------------------------+-------------+
+| No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
++----+-----------------------+---------------------+--------+------------------------+-------------+
+| 1  | Ahmad Mushtofa Kamal  | Kamar 1.01          | IZIN   | Izin Pulang ke Rumah   | -           |
++----+-----------------------+---------------------+--------+------------------------+-------------+
 ```
 
 ---
 
-## 4. Cara Update Google Apps Script
+## 3. Cara Memperbarui Skrip di Google Apps Script
 
-1. Buka file Google Sheets Anda > menu **Extensions (Ekstensi)** > **Apps Script**.
-2. Hapus seluruh isi editor dengan **Ctrl+A** lalu **Delete**.
-3. Buka file [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs), salin semua kodenya (Ctrl+A lalu Ctrl+C), dan tempelkan ke editor Apps Script.
-4. Klik **Save (Ctrl+S)**.
-5. Klik **Deploy (Terapkan)** > **New deployment (Penerapan baru)** > pilih **Web app** > klik **Deploy** dan salin URL Web App berakhiran `/exec`.
+Agar spreadsheet otomatis membuat tab baru dan format kotak data di atas:
 
----
-
-## 5. Status Deployment Aktif
-- **URL Google Apps Script Aktif:** `https://script.google.com/macros/s/AKfycbwgpoX0z59a0uGaJrloy8S2rUfCtLw-R79G9hVYoSySxf7tfHIy1cwNUKi4Qso460xwWA/exec`
-- **Spreadsheet Terhubung:** [Google Sheets Presensi Asrama](https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit)
-- **Status Integrasi:** Teruji berhasil (tab `Kelas 7`, `Kelas 8`, `Kelas 9`, `28-10-2026`, dan `Semua Riwayat` terisi otomatis).
-
----
-
-## 6. Berkas Proyek & Repository GitHub
-- **GitHub Repository:** [https://github.com/Zeinul899/presensi-santri-sakit](https://github.com/Zeinul899/presensi-santri-sakit)
-- [absen-sakit.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/absen-sakit.html): Aplikasi web mandiri siap pakai (buka di browser HP / laptop).
-- [standalone.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/standalone.html): Versi mandiri di folder `absen-sakit`.
-- [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs): Skrip Google Apps Script Versi 5.0.
-- [App.jsx](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/src/App.jsx): Komponen React Vite.
+1. Buka spreadsheet: [Google Sheets Presensi Asrama](https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit).
+2. Di menu atas Google Sheets, klik **Extensions (Ekstensi)** > **Apps Script**.
+3. Di editor Apps Script:
+   - Tekan **Ctrl + A** (pilih semua kode).
+   - Tekan **Delete** atau **Backspace** hingga halaman editor benar-benar kosong bersih.
+4. Buka file [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs) di komputer ini.
+5. Salin semua isinya (**Ctrl + A** lalu **Ctrl + C**), lalu tempel (**Ctrl + V**) ke editor Apps Script.
+6. Klik tombol **Save** (ikon disket atau **Ctrl + S**).
+7. Klik tombol biru **Deploy (Terapkan)** di pojok kanan atas:
+   - Pilih **Manage deployments (Kelola penerapan)**.
+   - Klik ikon **Edit (Pensil)** di sebelah kiri.
+   - Pada pilihan **Version**, pilih **New version (Versi baru)**.
+   - Klik **Deploy (Terapkan)**.
+8. Selesai! Kini setiap kali laporan dikirim dari formulir, tab baru langsung otomatis muncul di urutan paling depan.

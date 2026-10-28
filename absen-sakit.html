@@ -507,7 +507,6 @@
       const OLD_GAS_URL = "https://script.google.com/macros/s/AKfycbxQvxumQQWFyT2SPfxTOTJJcJ4h-wKSgXCyRKNV_gJ2nSKVhOULPrp0ZaqQLacIqhQqFQ/exec";
       const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwgpoX0z59a0uGaJrloy8S2rUfCtLw-R79G9hVYoSySxf7tfHIy1cwNUKi4Qso460xwWA/exec";
       const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit";
-      const DEFAULT_WA_TARGET = "628935603130";
 
       const [gasUrl, setGasUrl] = useState(() => {
         const saved = localStorage.getItem("gas_sheet_url");
@@ -519,9 +518,6 @@
       });
       const [sheetViewUrl, setSheetViewUrl] = useState(() => {
         return localStorage.getItem("sheet_view_url") || DEFAULT_SHEET_URL;
-      });
-      const [waTargetNumber, setWaTargetNumber] = useState(() => {
-        return localStorage.getItem("wa_target_number") || DEFAULT_WA_TARGET;
       });
 
       const [showSettings, setShowSettings] = useState(false);
@@ -705,7 +701,7 @@
         );
       };
 
-      const formatWaText = (batch) => {
+      const formatRekapText = (batch) => {
         if (!batch || !batch.records || batch.records.length === 0) return "";
         
         const grouped = {};
@@ -717,11 +713,11 @@
         });
 
         let lines = [
-          `LAPORAN PRESENSI ASRAMA - ${batch.sesi.toUpperCase()}`,
+          `LAPORAN REKAPITULASI SANTRI SMP - SESI ${batch.sesi.toUpperCase()}`,
           `----------------------------------------`,
           `Waktu Lapor: ${batch.submittedAt}`,
           `Petugas Pemeriksa: ${batch.namaPelapor}`,
-          `Total Santri Dilaporkan: ${batch.records.length} Anak (${Object.keys(grouped).length} Kamar)`,
+          `Total Dilaporkan: ${batch.records.length} Santri (${Object.keys(grouped).length} Kamar)`,
           `----------------------------------------`,
           `RINCIAN DATA SANTRI PER ASRAMA:`
         ];
@@ -761,23 +757,11 @@
         lines.push(`----------------------------------------`);
         const sheetLink = sheetViewUrl || localStorage.getItem("sheet_view_url") || "";
         if (sheetLink.trim()) {
-          lines.push(`Link Rekap Google Sheets:`);
+          lines.push(`Link Google Sheets:`);
           lines.push(sheetLink.trim());
         }
 
         return lines.join("\n");
-      };
-
-      const handleSendWa = (batch) => {
-        if (!batch) return;
-        const text = encodeURIComponent(formatWaText(batch));
-        let rawPhone = (waTargetNumber || DEFAULT_WA_TARGET).trim();
-        if (rawPhone.startsWith("0")) {
-          rawPhone = "62" + rawPhone.slice(1);
-        }
-        const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
-        const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${text}`;
-        window.open(url, "_blank");
       };
 
       const handleSubmit = async (e) => {
@@ -935,7 +919,7 @@
                 body: JSON.stringify(record)
               });
             }
-            msg = `Data ${individualRecords.length} santri berhasil dikirim dan otomatis dipisah per Kelas (Kelas 7, 8, 9) serta Tab Harian di Google Sheets!`;
+            msg = `Data ${individualRecords.length} santri berhasil dicatat dan dibuatkan Tab Baru di urutan terdepan Google Sheets dengan KOP Judul SMP & Tabel Kotak Per Asrama!`;
           } catch (err) {
             console.error("Gagal kirim ke GAS:", err);
             msg = `Terkirim ke Google Sheets (${individualRecords.length} santri) & tersimpan aman di arsip lokal.`;
@@ -977,6 +961,15 @@
               <span className="text-brand-primary font-semibold">Presensi Asrama (Sakit/Izin/Alpa)</span>
             </div>
             <div className="flex items-center gap-2">
+              <a 
+                href={sheetViewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 bg-white border border-neutral-border rounded-lg hover:bg-neutral-surface text-emerald-700 font-semibold transition-colors flex items-center gap-1 shadow-xs"
+                title="Buka Spreadsheet di Tab Baru"
+              >
+                <span>↗ Buka Sheets</span>
+              </a>
               <button 
                 onClick={() => setShowHistory(true)}
                 className="px-2.5 py-1 bg-white border border-neutral-border rounded-lg hover:bg-neutral-surface text-brand-primary transition-colors flex items-center gap-1 shadow-xs"
@@ -1067,35 +1060,43 @@
                     </div>
                   )}
 
-                  {/* FITUR WHATSAPP: 08935603130 */}
+                  {/* TAUTAN LANGSUNG GOOGLE SHEETS */}
                   <div className="pt-3 border-t border-neutral-border">
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-2.5">
-                      <div className="text-xs text-emerald-900 text-center sm:text-left">
-                        <strong className="block font-semibold">
-                          Kirim Rekap ke WhatsApp:
-                        </strong>
-                        <p className="text-[11px] text-emerald-700 mt-0.5">
-                          Kirim otomatis ke <strong>08935603130</strong>.
-                        </p>
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-sm">
+                            <span>Hasil Rekap Masuk ke Tab Baru Google Sheets</span>
+                          </div>
+                          <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                            Laporan sesi ini telah otomatis dibuatkan <strong>Tab Baru</strong> di urutan paling depan dengan <strong>KOP Judul SMP</strong> dan <strong>Kotak Data Terpisah Per Asrama</strong>.
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        <button
-                          type="button"
-                          onClick={() => handleSendWa(lastSubmissionBatch)}
-                          className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors text-xs flex items-center justify-center gap-1.5 shadow-xs"
+
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <a
+                          href={sheetViewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                         >
-                          <span>Kirim ke 08935603130</span>
-                        </button>
+                          <span>↗ Buka Spreadsheet Google Sheets</span>
+                        </a>
                         <button
                           type="button"
                           onClick={() => {
-                            navigator.clipboard.writeText(formatWaText(lastSubmissionBatch));
-                            alert("Teks laporan WhatsApp berhasil disalin!");
+                            navigator.clipboard.writeText(sheetViewUrl);
+                            alert("Link Google Sheets berhasil disalin ke clipboard!");
                           }}
-                          className="px-3 py-2 bg-white border border-emerald-300 text-emerald-800 rounded-lg font-medium hover:bg-emerald-100 transition-colors text-xs"
+                          className="px-4 py-2.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                         >
-                          Salin
+                          Salin Link Sheets
                         </button>
+                      </div>
+
+                      <div className="text-[11px] font-mono text-emerald-800/80 bg-white/80 p-2 rounded border border-emerald-200 truncate select-all">
+                        {sheetViewUrl}
                       </div>
                     </div>
                   </div>
@@ -1741,7 +1742,7 @@
               <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-neutral-border max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between pb-3 border-b border-neutral-border mb-4">
                   <h3 className="font-bold text-brand-primary text-base sm:text-lg">
-                    Pengaturan Google Apps Script (Sheets)
+                    Pengaturan Google Sheets
                   </h3>
                   <button 
                     onClick={() => setShowSettings(false)}
@@ -1763,11 +1764,14 @@
                       onChange={(e) => setGasUrl(e.target.value)}
                       className="w-full p-2.5 bg-neutral-surface border border-neutral-border rounded-lg text-xs font-mono focus:outline-none focus:border-brand-primary"
                     />
+                    <p className="mt-1 text-[11px] text-neutral-text_muted">
+                      Endpoint v6.0 otomatis membuat Tab Baru terdepan per laporan dengan KOP SMP.
+                    </p>
                   </div>
 
                   <div>
                     <label className="block font-semibold text-brand-primary mb-1">
-                      Link File Google Sheets (Untuk Tautan di WhatsApp):
+                      Link File Google Sheets (Untuk Tombol Akses Langsung):
                     </label>
                     <input
                       type="url"
@@ -1776,21 +1780,8 @@
                       onChange={(e) => setSheetViewUrl(e.target.value)}
                       className="w-full p-2.5 bg-neutral-surface border border-neutral-border rounded-lg text-xs font-mono focus:outline-none focus:border-brand-primary"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-brand-primary mb-1">
-                      Nomor WhatsApp Tujuan:
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="Contoh: 628935603130"
-                      value={waTargetNumber}
-                      onChange={(e) => setWaTargetNumber(e.target.value)}
-                      className="w-full p-2.5 bg-neutral-surface border border-neutral-border rounded-lg text-xs font-mono focus:outline-none focus:border-brand-primary"
-                    />
                     <p className="mt-1 text-[11px] text-neutral-text_muted">
-                      Default dikirim ke <strong>08935603130</strong>.
+                      Link spreadsheet untuk tombol "Buka Sheets" di header dan konfirmasi.
                     </p>
                   </div>
 
@@ -1800,8 +1791,7 @@
                       onClick={() => {
                         localStorage.setItem("gas_sheet_url", gasUrl.trim());
                         localStorage.setItem("sheet_view_url", sheetViewUrl.trim());
-                        localStorage.setItem("wa_target_number", waTargetNumber.trim());
-                        alert("Pengaturan berhasil disimpan di perangkat ini!");
+                        alert("Pengaturan Google Sheets berhasil disimpan di perangkat ini!");
                         setShowSettings(false);
                       }}
                       className="px-4 py-2 bg-brand-primary text-white rounded-lg font-medium hover:bg-slate-800 transition-colors text-xs"
@@ -1852,22 +1842,23 @@
                           <span className="ml-1">Santri ({batch.records ? batch.records.length : 1}): <strong>{batch.records ? batch.records.map(r => `${r.namaSantri} (${r.kamar}) [${r.statusKehadiran}]`).join(", ") : batch.namaSantri}</strong></span>
                         </div>
                         <div className="pt-2 border-t border-neutral-border flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSendWa(batch)}
-                            className="px-2.5 py-1 bg-emerald-600 text-white rounded text-[11px] font-medium hover:bg-emerald-700"
+                          <a
+                            href={sheetViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 bg-emerald-700 text-white rounded text-[11px] font-medium hover:bg-emerald-800 flex items-center gap-1"
                           >
-                            Kirim WA
-                          </button>
+                            <span>↗ Buka Sheets</span>
+                          </a>
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(formatWaText(batch));
-                              alert("Teks WA berhasil disalin!");
+                              navigator.clipboard.writeText(formatRekapText(batch));
+                              alert("Ringkasan laporan berhasil disalin ke clipboard!");
                             }}
                             className="px-2.5 py-1 bg-white border border-neutral-border text-brand-primary rounded text-[11px] font-medium hover:bg-slate-100"
                           >
-                            Salin
+                            Salin Ringkasan
                           </button>
                         </div>
                       </div>
