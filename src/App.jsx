@@ -491,65 +491,25 @@ export default function App() {
     setHistory(updatedHistory);
     localStorage.setItem("absen_history", JSON.stringify(updatedHistory));
 
-    const sendViaHiddenForm = (url, dataObj) => {
-      try {
-        let iframe = document.getElementById("gas_hidden_iframe_react");
-        if (!iframe) {
-          iframe = document.createElement("iframe");
-          iframe.id = "gas_hidden_iframe_react";
-          iframe.name = "gas_hidden_iframe_react";
-          iframe.style.display = "none";
-          document.body.appendChild(iframe);
-        }
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = url;
-        form.target = "gas_hidden_iframe_react";
-        for (const [k, v] of Object.entries(dataObj)) {
-          const inp = document.createElement("input");
-          inp.type = "hidden";
-          inp.name = k;
-          inp.value = typeof v === "object" ? JSON.stringify(v) : v;
-          form.appendChild(inp);
-        }
-        document.body.appendChild(form);
-        form.submit();
-        setTimeout(() => { form.remove(); }, 1500);
-      } catch (e) {
-        console.warn("Hidden form error:", e);
-      }
-    };
-
     let msg = `Tercatat di sistem lokal (${individualRecords.length} santri).`;
 
     if (gasUrl && gasUrl.trim().startsWith("http")) {
       const cleanUrl = gasUrl.trim();
       try {
-        // Kirim batch payload santriItems untuk Code.gs v5.0 (otomatis memisah tab Kelas 7, 8, 9)
         const batchPayload = {
           sesi,
           santriItems: individualRecords,
           keterangan: keteranganKamar.trim() || "-",
           namaPelapor: namaPelapor.trim()
         };
-        sendViaHiddenForm(cleanUrl, batchPayload);
+
+        // Kirim HANYA SATU KALI via fetch (mencegah data ganda/terkirim 2 kali)
         await fetch(cleanUrl, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(batchPayload)
         });
-
-        // Fallback untuk setiap santri agar langsung terisi juga jika masih menggunakan script lama
-        for (const record of individualRecords) {
-          sendViaHiddenForm(cleanUrl, record);
-          await fetch(cleanUrl, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(record)
-          });
-        }
 
         msg = `Data ${individualRecords.length} santri berhasil dicatat dan dibuatkan Tab Baru di urutan terdepan Google Sheets dengan KOP Judul SMP & Tabel Kotak Per Asrama!`;
       } catch (err) {

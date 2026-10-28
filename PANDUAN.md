@@ -1,7 +1,7 @@
-# Sistem Presensi Santri Asrama (Versi 6.1)
-## Pembaruan Tata Letak Google Sheets & Pembersihan Nama Petugas
+# Sistem Presensi Santri Asrama (Versi 6.2)
+## Penambahan Kolom Kelas di Spreadsheet & Perbaikan Data Dobel
 
-Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
+Dokumentasi pembaruan sistem presensi santri asrama per kamar:
 - **Tautan Langsung Google Sheets:** [Buka Google Sheets Presensi](https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit)
 - **Aplikasi Web Presensi:**
   - Versi React/Vite: `http://localhost:5174/`
@@ -10,63 +10,60 @@ Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
 
 ---
 
-## 1. Pembaruan Versi 6.1
+## 1. Pembaruan Versi 6.2
 
-1. **Penghapusan Teks "Faris / Zahran":**
-   - Teks "Faris / Zahran" telah dihapus dari seluruh placeholder formulir, komentar skrip, data simulasi, dan KOP spreadsheet.
-   - Pada input formulir, teks petunjuk diubah menjadi generic: `Tulis nama petugas pemeriksa kamar...`.
-   - Di baris KOP Google Sheets, info petugas hanya akan muncul jika memang diketik nama oleh pengguna. Jika dikosongkan, baris KOP hanya menampilkan: `Waktu Kirim: [timestamp] WIB • Total Dilaporkan: [X] Santri`.
-   - `localStorage` browser yang sebelumnya menyimpan nama lama secara otomatis dibersihkan.
+1. **Perbaikan Masalah Data Terkirim Dobel (2x Masuk Sheets):**
+   - Sebelumnya, formulir mengeksekusi pengiriman ganda (pengiriman batch + pengiriman cadangan per santri + hidden form).
+   - Sekarang mekanisme pengiriman disederhanakan secara presisi: **Hanya 1 permintaan (single batch request)** via `fetch POST` yang dikirimkan ke Google Apps Script.
+   - Hasil: Memilih 1 santri akan tercatat tepat **1 baris** di Google Sheets (tidak akan lagi dobel 2 kali).
 
-2. **Perapian Tata Letak Google Sheets (Executive Layout):**
-   - **Tampilan Bersih (Borderless Canvas):** Gridlines bawaan spreadsheet dinonaktifkan pada tab laporan harian sehingga lembar kerja tampak seperti dokumen PDF / dasbor profesional yang bersih dan elegan.
-   - **Garis Tabel Rapi (Subtle Dividers):** Garis kotak antar sel di dalam tabel tidak lagi menggunakan border tebal yang padat, melainkan divider horizontal tipis (`#E2E8F0`) tanpa garis vertikal kolom yang kaku, sehingga data santri sangat mudah dibaca.
-   - **Border Kartu Luar (Solid Card Frame):** Setiap asrama memiliki bingkai luar solid (`#64748B`) yang mempertegas pemisahan kotak per gedung asrama.
-   - **Text Wrapping Aktif:** Kolom keluhan, obat, lokasi, dan catatan diatur otomatis membungkus teks (*wrap strategy*) sehingga tidak ada tulisan panjang yang terpotong.
-   - **4 Kartu Ringkasan KPI Simetris:** Kotak ringkasan di Baris 5 dibagi secara proporsional dan simetris di atas 10 kolom:
-     - `TOTAL SAKIT` (Kolom A-C)
-     - `TOTAL IZIN` (Kolom D-E)
-     - `TOTAL ALPA` (Kolom F-G)
-     - `TOTAL REKAP` (Kolom H-J)
+2. **Penambahan Kolom "Kelas" di Tabel Google Sheets:**
+   - Kolom tabel di setiap kotak asrama kini berjumlah **11 Kolom Lengkap**, dengan kolom **Kelas** ditambahkan tepat di sebelah nama santri:
+     `No | Nama Santri | Kelas | Kamar | Status | Keluhan / Penyakit / Alasan | Obat yang Diberikan | Mulai Sejak | Lokasi Istirahat | Suhu | Catatan Tambahan`
+   - Nilai kolom kelas otomatis terisi sesuai jenjang santri: `Kelas 9`, `Kelas 8`, atau `Kelas 7`.
+
+3. **Penghapusan Nama Petugas Bawaan:**
+   - Teks "Faris / Zahran" telah dihapus dari seluruh placeholder, komentar skrip, data simulasi, dan KOP spreadsheet.
+   - Info petugas pada KOP hanya akan muncul jika memang diketik nama petugas baru oleh pengurus.
 
 ---
 
-## 2. Struktur Tampilan Sheet Baru di Google Sheets
+## 2. Struktur Tampilan Sheet Baru di Google Sheets (11 Kolom)
 
 ```
-+--------------------------------------------------------------------------------------------------+
-|                              LAPORAN REKAPITULASI SANTRI SAKIT SMP                               |
-+--------------------------------------------------------------------------------------------------+
-| Bulan: Oktober 2026   |   Tanggal: 28 Oktober 2026   |   Sesi Laporan: Pagi                      |
-+--------------------------------------------------------------------------------------------------+
-| Waktu Kirim: 28/10/2026 19:40:00 WIB  •  Total Dilaporkan: 3 Santri                              |
-+--------------------------------------------------------------------------------------------------+
-| [TOTAL SAKIT: 1]  |  [TOTAL IZIN: 1]  |  [TOTAL ALPA: 1]  |  [TOTAL REKAP: 3 SANTRI]             |
-+--------------------------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------------------------+
+|                                     LAPORAN REKAPITULASI SANTRI SAKIT SMP                                      |
++----------------------------------------------------------------------------------------------------------------+
+| Bulan: Oktober 2026   |   Tanggal: 28 Oktober 2026   |   Sesi Laporan: Pagi                                    |
++----------------------------------------------------------------------------------------------------------------+
+| Waktu Kirim: 28/10/2026 19:40:00 WIB  •  Total Dilaporkan: 3 Santri                                            |
++----------------------------------------------------------------------------------------------------------------+
+| [TOTAL SAKIT: 1]      |  [TOTAL IZIN: 1]             |  [TOTAL ALPA: 1]          |  [TOTAL REKAP: 3 SANTRI]    |
++----------------------------------------------------------------------------------------------------------------+
 
-+--------------------------------------------------------------------------------------------------+
-| KELAS 9 • ASRAMA IPS LT 3   —   1 Santri Dilaporkan                                              |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
-| No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
-| 1  | Santri Contoh         | IPS Lt 3 - Kamar 2  | ALPA   | Belum kembali ke kamar | -           |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
++----------------------------------------------------------------------------------------------------------------+
+| KELAS 9 • ASRAMA IPS LT 3   —   1 Santri Dilaporkan                                                            |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
+| No | Nama Santri           | Kelas   | Kamar               | Status | Keluhan / Alasan       | Obat            |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
+| 1  | Santri Contoh         | Kelas 9 | IPS Lt 3 - Kamar 2  | ALPA   | Belum kembali ke kamar | -               |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
 
-+--------------------------------------------------------------------------------------------------+
-| KELAS 8   —   1 Santri Dilaporkan                                                                |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
-| No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
-| 1  | Alvin Kurniawan       | Kamar 3.01          | SAKIT  | Demam / Badan Panas    | Paracetamol |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
++----------------------------------------------------------------------------------------------------------------+
+| KELAS 8   —   1 Santri Dilaporkan                                                                              |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
+| No | Nama Santri           | Kelas   | Kamar               | Status | Keluhan / Alasan       | Obat            |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
+| 1  | Alvin Kurniawan       | Kelas 8 | Kamar 3.01          | SAKIT  | Demam / Badan Panas    | Paracetamol     |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
 
-+--------------------------------------------------------------------------------------------------+
-| KELAS 7   —   1 Santri Dilaporkan                                                                |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
-| No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
-| 1  | Ahmad Mushtofa Kamal  | Kamar 1.01          | IZIN   | Izin Pulang ke Rumah   | -           |
-+----+-----------------------+---------------------+--------+------------------------+-------------+
++----------------------------------------------------------------------------------------------------------------+
+| KELAS 7   —   1 Santri Dilaporkan                                                                              |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
+| No | Nama Santri           | Kelas   | Kamar               | Status | Keluhan / Alasan       | Obat            |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
+| 1  | Ahmad Mushtofa Kamal  | Kelas 7 | Kamar 1.01          | IZIN   | Izin Pulang ke Rumah   | -               |
++----+-----------------------+---------+---------------------+--------+------------------------+-----------------+
 ```
 
 ---
