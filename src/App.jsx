@@ -74,13 +74,13 @@ const CATATAN_ALPA_PRESETS = [
   "LAINNYA"
 ];
 
-export const ASRAMA_CONFIG = {
+const ASRAMA_CONFIG = {
   "Kelas 7": { asrama: "IPS 2", label: "Kelas 7 (IPS 2)" },
   "Kelas 8": { asrama: "IPS 2", label: "Kelas 8 (IPS 2)" },
   "Kelas 9": { asrama: "IPS Lt 3", label: "Kelas 9 (IPS Lt 3)" }
 };
 
-export const formatKamarAsrama = (kelas, kamar) => {
+const formatKamarAsrama = (kelas, kamar) => {
   const kStr = (kamar || "").trim();
   if ((kelas || "").includes("9")) {
     const num = kStr.replace(/^kamar\s*/i, "").trim();
