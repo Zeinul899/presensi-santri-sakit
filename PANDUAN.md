@@ -1,5 +1,5 @@
-# Sistem Presensi Santri Asrama (Versi 6.0)
-## Sheet Baru Otomatis Per Laporan, KOP Judul SMP & Kotak Data Per Asrama
+# Sistem Presensi Santri Asrama (Versi 6.1)
+## Pembaruan Tata Letak Google Sheets & Pembersihan Nama Petugas
 
 Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
 - **Tautan Langsung Google Sheets:** [Buka Google Sheets Presensi](https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit)
@@ -10,31 +10,24 @@ Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
 
 ---
 
-## 1. Ringkasan Perubahan Utama (Versi 6.0)
+## 1. Pembaruan Versi 6.1
 
-1. **Penghapusan Fitur WhatsApp:**
-   - Tombol dan pengaturan WhatsApp telah dihapus sepenuhnya dari antarmuka formulir.
-   - Digantikan dengan tombol langsung **"Buka Sheets"** di bar atas dan **"Buka Spreadsheet Google Sheets"** serta **"Salin Link Sheets"** pada layar konfirmasi pengiriman.
-2. **Sheet / Tab Baru Otomatis Setiap Kirim Laporan:**
-   - Setiap kali petugas menekan tombol *Kirim Laporan*, Google Apps Script akan secara otomatis membuat sebuah **Tab Baru di posisi paling depan (index 0)**.
-   - Penamaan Tab Otomatis: Contoh `28 Okt 2026 - Pagi`, `28 Okt 2026 - Malam`. Jika ada sesi susulan di waktu yang sama, otomatis diberi stempel jam (contoh `28 Okt 2026 - Pagi (14.50)`).
-3. **KOP Judul Resmi SMP:**
-   - Bagian atas sheet baru memuat KOP resmi:
-     - Baris 1: **LAPORAN REKAPITULASI SANTRI SAKIT SMP** (Banner slate gelap, font tebal).
-     - Baris 2: Sub-KOP memuat: `Bulan: [Nama Bulan] [Tahun] | Tanggal: [DD-MM-YYYY] | Sesi: [Pagi/Malam]`.
-     - Baris 3: Info `Waktu Kirim | Petugas Pemeriksa | Total Dilaporkan`.
-     - Baris 5: 4 Kotak Ringkasan Cepat: **TOTAL SAKIT**, **TOTAL IZIN**, **TOTAL ALPA**, dan **TOTAL KESELURUHAN**.
-4. **Data Terpisah "Per Kotak" Berdasarkan Asrama:**
-   - Santri yang dilaporkan tidak dicampur aduk dalam satu tabel panjang, melainkan dipisah menjadi **Kotak-kotak Data Terpisah** dengan garis batas solid mengelilingi kotak:
-     - **KOTAK DATA: KELAS 9 • ASRAMA IPS LT 3**
-     - **KOTAK DATA: KELAS 8**
-     - **KOTAK DATA: KELAS 7**
-   - Setiap kotak memiliki header kolom lengkap: `No | Nama Santri | Kamar | Status | Keluhan / Penyakit / Alasan | Obat yang Diberikan | Mulai Sejak | Lokasi Istirahat | Suhu Tubuh | Catatan Tambahan`.
-5. **Penamaan Kamar Asrama yang Presisi:**
-   - **Kelas 9:** Khusus mencantumkan `IPS Lt 3 - Kamar [Nomor]` (Kamar 1 s.d. 5).
-   - **Kelas 8 & 7:** Hanya menampilkan `Kamar [Nomor]` (tanpa tulisan IPS).
-6. **Penyimpanan Permanen (Master Sheet):**
-   - Selain membuat tab baru per sesi, seluruh data juga dicatat secara permanen di tab **`Semua Riwayat`** sebagai arsip lengkap.
+1. **Penghapusan Teks "Faris / Zahran":**
+   - Teks "Faris / Zahran" telah dihapus dari seluruh placeholder formulir, komentar skrip, data simulasi, dan KOP spreadsheet.
+   - Pada input formulir, teks petunjuk diubah menjadi generic: `Tulis nama petugas pemeriksa kamar...`.
+   - Di baris KOP Google Sheets, info petugas hanya akan muncul jika memang diketik nama oleh pengguna. Jika dikosongkan, baris KOP hanya menampilkan: `Waktu Kirim: [timestamp] WIB • Total Dilaporkan: [X] Santri`.
+   - `localStorage` browser yang sebelumnya menyimpan nama lama secara otomatis dibersihkan.
+
+2. **Perapian Tata Letak Google Sheets (Executive Layout):**
+   - **Tampilan Bersih (Borderless Canvas):** Gridlines bawaan spreadsheet dinonaktifkan pada tab laporan harian sehingga lembar kerja tampak seperti dokumen PDF / dasbor profesional yang bersih dan elegan.
+   - **Garis Tabel Rapi (Subtle Dividers):** Garis kotak antar sel di dalam tabel tidak lagi menggunakan border tebal yang padat, melainkan divider horizontal tipis (`#E2E8F0`) tanpa garis vertikal kolom yang kaku, sehingga data santri sangat mudah dibaca.
+   - **Border Kartu Luar (Solid Card Frame):** Setiap asrama memiliki bingkai luar solid (`#64748B`) yang mempertegas pemisahan kotak per gedung asrama.
+   - **Text Wrapping Aktif:** Kolom keluhan, obat, lokasi, dan catatan diatur otomatis membungkus teks (*wrap strategy*) sehingga tidak ada tulisan panjang yang terpotong.
+   - **4 Kartu Ringkasan KPI Simetris:** Kotak ringkasan di Baris 5 dibagi secara proporsional dan simetris di atas 10 kolom:
+     - `TOTAL SAKIT` (Kolom A-C)
+     - `TOTAL IZIN` (Kolom D-E)
+     - `TOTAL ALPA` (Kolom F-G)
+     - `TOTAL REKAP` (Kolom H-J)
 
 ---
 
@@ -46,21 +39,21 @@ Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
 +--------------------------------------------------------------------------------------------------+
 | Bulan: Oktober 2026   |   Tanggal: 28 Oktober 2026   |   Sesi Laporan: Pagi                      |
 +--------------------------------------------------------------------------------------------------+
-| Waktu Kirim: 28/10/2026 14:50:00 WIB  •  Petugas Pemeriksa: Faris  •  Total: 3 Santri            |
+| Waktu Kirim: 28/10/2026 19:40:00 WIB  •  Total Dilaporkan: 3 Santri                              |
 +--------------------------------------------------------------------------------------------------+
-| [TOTAL SAKIT: 1]  |  [TOTAL IZIN: 1]  |  [TOTAL ALPA: 1]  |  [TOTAL KESELURUHAN: 3 SANTRI]       |
+| [TOTAL SAKIT: 1]  |  [TOTAL IZIN: 1]  |  [TOTAL ALPA: 1]  |  [TOTAL REKAP: 3 SANTRI]             |
 +--------------------------------------------------------------------------------------------------+
 
 +--------------------------------------------------------------------------------------------------+
-| KOTAK DATA: KELAS 9 • ASRAMA IPS LT 3 (1 Santri Dilaporkan)                                      |
+| KELAS 9 • ASRAMA IPS LT 3   —   1 Santri Dilaporkan                                              |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
 | No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
-| 1  | Zahran Yasser Hamzah  | IPS Lt 3 - Kamar 2  | ALPA   | Belum kembali ke kamar | -           |
+| 1  | Santri Contoh         | IPS Lt 3 - Kamar 2  | ALPA   | Belum kembali ke kamar | -           |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
 
 +--------------------------------------------------------------------------------------------------+
-| KOTAK DATA: KELAS 8 (1 Santri Dilaporkan)                                                        |
+| KELAS 8   —   1 Santri Dilaporkan                                                                |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
 | No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
@@ -68,7 +61,7 @@ Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
 +----+-----------------------+---------------------+--------+------------------------+-------------+
 
 +--------------------------------------------------------------------------------------------------+
-| KOTAK DATA: KELAS 7 (1 Santri Dilaporkan)                                                        |
+| KELAS 7   —   1 Santri Dilaporkan                                                                |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
 | No | Nama Santri           | Kamar               | Status | Keluhan / Alasan       | Obat        |
 +----+-----------------------+---------------------+--------+------------------------+-------------+
@@ -80,14 +73,12 @@ Dokumentasi pembaruan menyeluruh sistem presensi santri asrama per kamar:
 
 ## 3. Cara Memperbarui Skrip di Google Apps Script
 
-Agar spreadsheet otomatis membuat tab baru dan format kotak data di atas:
-
 1. Buka spreadsheet: [Google Sheets Presensi Asrama](https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit).
 2. Di menu atas Google Sheets, klik **Extensions (Ekstensi)** > **Apps Script**.
 3. Di editor Apps Script:
    - Tekan **Ctrl + A** (pilih semua kode).
    - Tekan **Delete** atau **Backspace** hingga halaman editor benar-benar kosong bersih.
-4. Buka file [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs) di komputer ini.
+4. Buka file [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs).
 5. Salin semua isinya (**Ctrl + A** lalu **Ctrl + C**), lalu tempel (**Ctrl + V**) ke editor Apps Script.
 6. Klik tombol **Save** (ikon disket atau **Ctrl + S**).
 7. Klik tombol biru **Deploy (Terapkan)** di pojok kanan atas:
@@ -95,4 +86,3 @@ Agar spreadsheet otomatis membuat tab baru dan format kotak data di atas:
    - Klik ikon **Edit (Pensil)** di sebelah kiri.
    - Pada pilihan **Version**, pilih **New version (Versi baru)**.
    - Klik **Deploy (Terapkan)**.
-8. Selesai! Kini setiap kali laporan dikirim dari formulir, tab baru langsung otomatis muncul di urutan paling depan.

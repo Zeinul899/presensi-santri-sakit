@@ -108,7 +108,12 @@ export default function App() {
 
   const [keteranganKamar, setKeteranganKamar] = useState("");
   const [namaPelapor, setNamaPelapor] = useState(() => {
-    return localStorage.getItem("absen_nama_pelapor") || "";
+    const saved = localStorage.getItem("absen_nama_pelapor") || "";
+    if (saved.toLowerCase().includes("faris") || saved.toLowerCase().includes("zahran")) {
+      localStorage.removeItem("absen_nama_pelapor");
+      return "";
+    }
+    return saved;
   });
 
   // Integrasi Google Apps Script (v6.0) & Spreadsheet
@@ -1357,7 +1362,7 @@ export default function App() {
               </p>
               <input
                 type="text"
-                placeholder="Contoh: Faris / Zahran / Pengurus Kamar 2"
+                placeholder="Tulis nama petugas pemeriksa kamar..."
                 value={namaPelapor}
                 onChange={(e) => setNamaPelapor(e.target.value)}
                 className="w-full p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:border-[#0F172A]"
