@@ -1,8 +1,12 @@
 # Sistem Presensi Santri Asrama (Versi 5.0: Lintas Asrama & Pemisahan Tab Kelas)
 
 Dokumentasi lengkap pembaruan sistem presensi asrama per kamar sesuai permintaan terbaru:
+- **Penamaan Asrama:** 
+  - **Kelas 9:** **IPS Lt 3** (Kamar 1 s.d. 5) -> format laporan: `IPS Lt 3 - Kamar [Nomor]`
+  - **Kelas 8:** **IPS 2** (Kamar 3.01 s.d. 3.07) -> format laporan: `IPS 2 - Kamar [Nomor]`
+  - **Kelas 7:** **IPS 2** (Kamar 1.01 s.d. 2.05) -> format laporan: `IPS 2 - Kamar [Nomor]`
 - **Waktu Laporan:** Sesi **Pagi** dan **Malam**
-- **Lintas Kamar/Asrama:** Bisa memilih santri dari banyak kamar sekaligus (Kamar 1, Kamar 2, Kamar 3, dst.) tanpa hilang saat berpindah kamar
+- **Lintas Kamar/Asrama:** Bisa memilih santri dari banyak kamar sekaligus tanpa hilang saat berpindah kamar
 - **Pemisahan Tab Google Sheets:** Otomatis memisahkan data ke tab **Kelas 7**, **Kelas 8**, **Kelas 9**, serta Tab Harian (`DD-MM-YYYY`) dan Tab Master (`Semua Riwayat`)
 - **Tujuan WhatsApp:** Otomatis ditujukan ke nomor **08935603130** (`628935603130`)
 
@@ -95,8 +99,9 @@ https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQR
 
 ---
 
-## 6. Berkas Proyek
-- [absen-sakit.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit.html): Aplikasi web mandiri siap pakai (buka di browser HP / laptop).
+## 6. Berkas Proyek & Repository GitHub
+- **GitHub Repository:** [https://github.com/Zeinul899/presensi-santri-sakit](https://github.com/Zeinul899/presensi-santri-sakit)
+- [absen-sakit.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/absen-sakit.html): Aplikasi web mandiri siap pakai (buka di browser HP / laptop).
 - [standalone.html](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/standalone.html): Versi mandiri di folder `absen-sakit`.
 - [Code.gs](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/Code.gs): Skrip Google Apps Script Versi 5.0.
 - [App.jsx](file:///c:/Users/Admin/Downloads/Sinau-Beta-test-main/absen-sakit/src/App.jsx): Komponen React Vite.

@@ -469,6 +469,25 @@
       "LAINNYA"
     ];
 
+    const ASRAMA_CONFIG = {
+      "Kelas 7": { asrama: "IPS 2", label: "Kelas 7 (IPS 2)" },
+      "Kelas 8": { asrama: "IPS 2", label: "Kelas 8 (IPS 2)" },
+      "Kelas 9": { asrama: "IPS Lt 3", label: "Kelas 9 (IPS Lt 3)" }
+    };
+
+    const formatKamarAsrama = (kelas, kamar) => {
+      const kStr = (kamar || "").trim();
+      if ((kelas || "").includes("9")) {
+        const num = kStr.replace(/^kamar\s*/i, "").trim();
+        return `IPS Lt 3 - Kamar ${num}`;
+      } else if ((kelas || "").includes("8")) {
+        return `IPS 2 - Kamar ${kStr}`;
+      } else {
+        // Kelas 7
+        return `IPS 2 - Kamar ${kStr}`;
+      }
+    };
+
     function App() {
       const [sesi, setSesi] = useState(() => {
         const hour = new Date().getHours();
@@ -693,7 +712,8 @@
         
         const grouped = {};
         batch.records.forEach(rec => {
-          const groupKey = `${rec.kelas.toUpperCase()} - ${rec.kamar.toUpperCase()}`;
+          const kamarDisplay = formatKamarAsrama(rec.kelas, rec.kamar);
+          const groupKey = `${kamarDisplay} (${rec.kelas})`;
           if (!grouped[groupKey]) grouped[groupKey] = [];
           grouped[groupKey].push(rec);
         });
@@ -777,7 +797,7 @@
           if (st.statusKehadiran === "Sakit") {
             const hasKeluhan = (st.sakitList && st.sakitList.length > 0) || st.sakitLainnya.trim();
             if (!hasKeluhan) {
-              return alert(`Pilih minimal satu keluhan sakit untuk santri: ${st.namaSantri} (${st.kamar})`);
+              return alert(`Pilih minimal satu keluhan sakit untuk santri: ${st.namaSantri} (${formatKamarAsrama(st.kelas, st.kamar)})`);
             }
             if (!st.obat.trim()) {
               return alert(`Isi catatan obat untuk santri: ${st.namaSantri} (atau tulis 'Belum minum obat')`);
@@ -832,7 +852,9 @@
           return {
             sesi,
             kelas: st.kelas,
-            kamar: st.kamar,
+            kamar: formatKamarAsrama(st.kelas, st.kamar),
+            kamarAsli: st.kamar,
+            asrama: ASRAMA_CONFIG[st.kelas]?.asrama || "IPS",
             namaSantri: st.namaSantri,
             statusKehadiran: st.statusKehadiran,
             sakit: finalSakitVal,
@@ -1010,7 +1032,7 @@
                           <strong className="text-brand-primary text-sm">{i + 1}. {rec.namaSantri}</strong>
                           <div className="flex gap-1.5 items-center">
                             <span className="text-[10px] bg-slate-100 text-brand-primary px-2 py-0.5 rounded font-medium">
-                              {rec.kelas} - {rec.kamar}
+                              {rec.kamar} ({rec.kelas})
                             </span>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               rec.statusKehadiran === "Sakit" ? "bg-red-100 text-red-800" :
@@ -1147,20 +1169,25 @@
                 <div className="grid grid-cols-3 gap-2">
                   {["Kelas 7", "Kelas 8", "Kelas 9"].map((k) => {
                     const countInClass = reportedStudents.filter(item => item.kelas === k).length;
+                    const asramaName = ASRAMA_CONFIG[k]?.asrama || "";
+                    const isSelected = kelas === k;
                     return (
                       <button
                         key={k}
                         type="button"
                         onClick={() => handleKelasChange(k)}
-                        className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all text-center relative ${
-                          kelas === k 
+                        className={`py-2 px-2.5 rounded-lg border text-center transition-all relative ${
+                          isSelected 
                             ? "bg-brand-primary text-white border-brand-primary shadow-xs" 
                             : "bg-neutral-surface text-brand-primary border-neutral-border hover:bg-slate-100"
                         }`}
                       >
-                        <span>{k}</span>
+                        <div className="font-bold text-xs sm:text-sm">{k}</div>
+                        <div className={`text-[11px] font-medium mt-0.5 ${isSelected ? "text-sky-300" : "text-neutral-text_muted"}`}>
+                          {asramaName}
+                        </div>
                         {countInClass > 0 && (
-                          <span className="ml-1.5 text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded-full font-bold">
+                          <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded-full font-bold shadow-xs">
                             {countInClass}
                           </span>
                         )}
@@ -1172,11 +1199,16 @@
 
               {/* CARD 2: NOMOR KAMAR */}
               <div className="gform-card bg-white border border-neutral-border rounded-xl p-5 shadow-sm">
-                <label className="block text-sm sm:text-base font-semibold text-brand-primary mb-1">
-                  2. Nomor Kamar ({kelas})
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm sm:text-base font-semibold text-brand-primary">
+                    2. Nomor Kamar ({ASRAMA_CONFIG[kelas]?.asrama} • {kelas})
+                  </label>
+                  <span className="text-xs text-neutral-text_muted font-medium">
+                    {availableRooms.length} Kamar
+                  </span>
+                </div>
                 <p className="text-xs text-neutral-text_muted mb-3">
-                  Klik kamar untuk memilih santri. Anda bisa berpindah kamar lain tanpa menghapus santri yang sudah dipilih.
+                  Klik kamar di {ASRAMA_CONFIG[kelas]?.asrama} untuk memilih santri. Santri dari kamar lain tetap tersimpan di daftar.
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1184,6 +1216,7 @@
                     const countRoster = ROSTER_DATA[kelas][r]?.length || 0;
                     const isSelected = kamar === r;
                     const reportedInThisRoom = reportedCountPerRoom[`${kelas}__${r}`] || 0;
+                    const roomDisplay = kelas.includes("9") ? r : `Kamar ${r}`;
 
                     return (
                       <button
@@ -1197,7 +1230,7 @@
                         }`}
                       >
                         <div className="flex justify-between items-start">
-                          <span className="font-semibold text-sm">{r}</span>
+                          <span className="font-semibold text-sm">{roomDisplay}</span>
                           {reportedInThisRoom > 0 && (
                             <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded-full font-bold">
                               {reportedInThisRoom} lapor
@@ -1205,7 +1238,7 @@
                           )}
                         </div>
                         <span className={`text-[11px] mt-1 ${isSelected ? "text-slate-300" : "text-neutral-text_muted"}`}>
-                          {countRoster} santri
+                          {ASRAMA_CONFIG[kelas]?.asrama} • {countRoster} santri
                         </span>
                       </button>
                     );
@@ -1217,7 +1250,7 @@
               <div className="gform-card bg-white border border-neutral-border rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm sm:text-base font-semibold text-brand-primary">
-                    3. Pilih Santri di {kamar} ({kelas})
+                    3. Pilih Santri di {formatKamarAsrama(kelas, kamar)} ({kelas})
                   </label>
                   <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
                     reportedStudents.length > 0 ? "bg-slate-900 text-white" : "bg-slate-100 text-neutral-text_muted"
@@ -1233,7 +1266,7 @@
                   <div className="relative flex-1">
                     <input
                       type="text"
-                      placeholder={`Cari santri di ${kamar}...`}
+                      placeholder={`Cari santri di ${formatKamarAsrama(kelas, kamar)}...`}
                       value={studentSearch}
                       onChange={(e) => setStudentSearch(e.target.value)}
                       className="w-full px-3 py-1.5 bg-neutral-surface border border-neutral-border rounded-lg text-xs focus:outline-none focus:border-brand-primary"
@@ -1244,7 +1277,7 @@
                     onClick={handleSelectAllInCurrentRoom}
                     className="px-2.5 py-1.5 bg-white border border-neutral-border rounded-lg text-xs font-medium text-brand-primary hover:bg-neutral-surface whitespace-nowrap"
                   >
-                    Pilih Semua di {kamar}
+                    Pilih Semua di {formatKamarAsrama(kelas, kamar)}
                   </button>
                 </div>
 
@@ -1341,7 +1374,7 @@
                           <div>
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded">
-                                {student.kelas} • {student.kamar}
+                                {formatKamarAsrama(student.kelas, student.kamar)} • {student.kelas}
                               </span>
                               <span className="text-[11px] font-semibold text-neutral-text_muted">
                                 Santri #{index + 1}

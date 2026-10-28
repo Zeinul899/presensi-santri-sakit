@@ -74,6 +74,25 @@ const CATATAN_ALPA_PRESETS = [
   "LAINNYA"
 ];
 
+export const ASRAMA_CONFIG = {
+  "Kelas 7": { asrama: "IPS 2", label: "Kelas 7 (IPS 2)" },
+  "Kelas 8": { asrama: "IPS 2", label: "Kelas 8 (IPS 2)" },
+  "Kelas 9": { asrama: "IPS Lt 3", label: "Kelas 9 (IPS Lt 3)" }
+};
+
+export const formatKamarAsrama = (kelas, kamar) => {
+  const kStr = (kamar || "").trim();
+  if ((kelas || "").includes("9")) {
+    const num = kStr.replace(/^kamar\s*/i, "").trim();
+    return `IPS Lt 3 - Kamar ${num}`;
+  } else if ((kelas || "").includes("8")) {
+    return `IPS 2 - Kamar ${kStr}`;
+  } else {
+    // Kelas 7
+    return `IPS 2 - Kamar ${kStr}`;
+  }
+};
+
 export default function App() {
   // Sesi deteksi otomatis: Pagi atau Malam
   const [sesi, setSesi] = useState(() => {
@@ -312,10 +331,11 @@ export default function App() {
   const formatWaText = (batch) => {
     if (!batch || !batch.records || batch.records.length === 0) return "";
     
-    // Group records by Kelas & Kamar
+    // Group records by Asrama, Kamar & Kelas
     const grouped = {};
     batch.records.forEach(rec => {
-      const groupKey = `${rec.kelas.toUpperCase()} - ${rec.kamar.toUpperCase()}`;
+      const kamarDisplay = formatKamarAsrama(rec.kelas, rec.kamar);
+      const groupKey = `${kamarDisplay} (${rec.kelas})`;
       if (!grouped[groupKey]) grouped[groupKey] = [];
       grouped[groupKey].push(rec);
     });
@@ -400,7 +420,7 @@ export default function App() {
       if (st.statusKehadiran === "Sakit") {
         const hasKeluhan = (st.sakitList && st.sakitList.length > 0) || st.sakitLainnya.trim();
         if (!hasKeluhan) {
-          return alert(`Pilih minimal satu keluhan sakit untuk santri: ${st.namaSantri} (${st.kamar})`);
+          return alert(`Pilih minimal satu keluhan sakit untuk santri: ${st.namaSantri} (${formatKamarAsrama(st.kelas, st.kamar)})`);
         }
         if (!st.obat.trim()) {
           return alert(`Isi catatan obat untuk santri: ${st.namaSantri} (atau tulis 'Belum minum obat')`);
@@ -455,7 +475,9 @@ export default function App() {
       return {
         sesi,
         kelas: st.kelas,
-        kamar: st.kamar,
+        kamar: formatKamarAsrama(st.kelas, st.kamar),
+        kamarAsli: st.kamar,
+        asrama: ASRAMA_CONFIG[st.kelas]?.asrama || "IPS",
         namaSantri: st.namaSantri,
         statusKehadiran: st.statusKehadiran,
         sakit: finalSakitVal,
@@ -648,7 +670,7 @@ export default function App() {
                         </strong>
                         <div className="flex gap-1.5 items-center">
                           <span className="text-[10px] bg-slate-100 text-[#0F172A] px-2 py-0.5 rounded font-medium">
-                            {rec.kelas} - {rec.kamar}
+                            {rec.kamar} ({rec.kelas})
                           </span>
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             rec.statusKehadiran === "Sakit" ? "bg-red-100 text-red-800" :
@@ -777,32 +799,37 @@ export default function App() {
               </div>
             </div>
 
-            {/* CARD 1: JENJANG / KELAS */}
+            {/* CARD 1: JENJANG / KELAS & GEDUNG ASRAMA */}
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm focus-within:border-l-4 focus-within:border-l-[#0F172A] transition-all">
               <label className="block text-sm sm:text-base font-semibold text-[#0F172A] mb-1">
-                1. Jenjang / Kelas Asrama
+                1. Jenjang Kelas & Gedung Asrama
               </label>
               <p className="text-xs text-[#64748B] mb-3">
-                Pilih jenjang kelas yang sedang Anda periksa kamarnya.
+                Pilih jenjang kelas dan gedung asrama yang sedang diperiksa kamarnya.
               </p>
 
               <div className="grid grid-cols-3 gap-2">
                 {["Kelas 7", "Kelas 8", "Kelas 9"].map((k) => {
                   const countInClass = reportedStudents.filter(item => item.kelas === k).length;
+                  const asramaName = ASRAMA_CONFIG[k]?.asrama || "";
+                  const isSelected = kelas === k;
                   return (
                     <button
                       key={k}
                       type="button"
                       onClick={() => handleKelasChange(k)}
-                      className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all text-center relative ${
-                        kelas === k 
+                      className={`py-2 px-2.5 rounded-lg border text-center transition-all relative ${
+                        isSelected 
                           ? "bg-[#0F172A] text-white border-[#0F172A] shadow-xs" 
                           : "bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0] hover:bg-slate-100"
                       }`}
                     >
-                      <span>{k}</span>
+                      <div className="font-bold text-xs sm:text-sm">{k}</div>
+                      <div className={`text-[11px] font-medium mt-0.5 ${isSelected ? "text-sky-300" : "text-[#64748B]"}`}>
+                        {asramaName}
+                      </div>
                       {countInClass > 0 && (
-                        <span className="ml-1.5 text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded-full font-bold">
+                        <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded-full font-bold shadow-xs">
                           {countInClass}
                         </span>
                       )}
@@ -814,11 +841,16 @@ export default function App() {
 
             {/* CARD 2: NOMOR KAMAR */}
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm focus-within:border-l-4 focus-within:border-l-[#0F172A] transition-all">
-              <label className="block text-sm sm:text-base font-semibold text-[#0F172A] mb-1">
-                2. Nomor Kamar ({kelas})
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-[#0F172A]">
+                  2. Nomor Kamar ({ASRAMA_CONFIG[kelas]?.asrama} • {kelas})
+                </label>
+                <span className="text-xs text-[#64748B] font-medium">
+                  {availableRooms.length} Kamar
+                </span>
+              </div>
               <p className="text-xs text-[#64748B] mb-3">
-                Klik kamar untuk memilih santri. Anda bisa berpindah kamar lain tanpa menghapus santri yang sudah dipilih.
+                Klik kamar di gedung {ASRAMA_CONFIG[kelas]?.asrama} untuk memilih santri. Santri dari kamar lain tetap tersimpan di daftar.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -826,6 +858,7 @@ export default function App() {
                   const countRoster = ROSTER_DATA[kelas][r]?.length || 0;
                   const isSelected = kamar === r;
                   const reportedInThisRoom = reportedCountPerRoom[`${kelas}__${r}`] || 0;
+                  const roomDisplay = kelas.includes("9") ? r : `Kamar ${r}`;
 
                   return (
                     <button
@@ -839,7 +872,7 @@ export default function App() {
                       }`}
                     >
                       <div className="flex justify-between items-start">
-                        <span className="font-semibold text-sm">{r}</span>
+                        <span className="font-semibold text-sm">{roomDisplay}</span>
                         {reportedInThisRoom > 0 && (
                           <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded-full font-bold">
                             {reportedInThisRoom} lapor
@@ -847,7 +880,7 @@ export default function App() {
                         )}
                       </div>
                       <span className={`text-[11px] mt-1 ${isSelected ? "text-slate-300" : "text-[#64748B]"}`}>
-                        {countRoster} santri
+                        {ASRAMA_CONFIG[kelas]?.asrama} • {countRoster} santri
                       </span>
                     </button>
                   );
@@ -859,7 +892,7 @@ export default function App() {
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm focus-within:border-l-4 focus-within:border-l-[#0F172A] transition-all">
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm sm:text-base font-semibold text-[#0F172A]">
-                  3. Pilih Santri di {kamar} ({kelas})
+                  3. Pilih Santri di {formatKamarAsrama(kelas, kamar)} ({kelas})
                 </label>
                 <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
                   reportedStudents.length > 0 ? "bg-slate-900 text-white" : "bg-slate-100 text-[#64748B]"
@@ -877,7 +910,7 @@ export default function App() {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
                   <input
                     type="text"
-                    placeholder={`Cari santri di ${kamar}...`}
+                    placeholder={`Cari santri di ${formatKamarAsrama(kelas, kamar)}...`}
                     value={studentSearch}
                     onChange={(e) => setStudentSearch(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs focus:outline-none focus:border-[#0F172A]"
@@ -897,7 +930,7 @@ export default function App() {
                   onClick={handleSelectAllInCurrentRoom}
                   className="px-2.5 py-1.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-medium text-[#0F172A] hover:bg-[#F8FAFC] whitespace-nowrap"
                 >
-                  Pilih Semua di {kamar}
+                  Pilih Semua di {formatKamarAsrama(kelas, kamar)}
                 </button>
               </div>
 
@@ -999,7 +1032,7 @@ export default function App() {
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded">
-                              {student.kelas} • {student.kamar}
+                              {formatKamarAsrama(student.kelas, student.kamar)} • {student.kelas}
                             </span>
                             <span className="text-[11px] font-semibold text-[#64748B]">
                               Santri #{index + 1}

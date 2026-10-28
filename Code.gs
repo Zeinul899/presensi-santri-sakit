@@ -126,7 +126,11 @@ function doPost(e) {
 
     // Helper untuk mengambil sheet kelas tertentu (Kelas 7, Kelas 8, Kelas 9)
     function dapatkanSheetKelas(namaKelas) {
-      const target = (namaKelas || "").trim();
+      let target = (namaKelas || "").trim();
+      if (target.includes("7")) target = "Kelas 7";
+      else if (target.includes("8")) target = "Kelas 8";
+      else if (target.includes("9")) target = "Kelas 9";
+
       let sheet = ss.getSheetByName(target);
       if (!sheet) {
         sheet = ss.insertSheet(target);
