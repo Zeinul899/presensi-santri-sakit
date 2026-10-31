@@ -117,12 +117,11 @@ export default function App() {
   });
 
   // Integrasi Google Apps Script (v7.0) & Spreadsheet
-  const OLD_GAS_URL = "https://script.google.com/macros/s/AKfycbxQvxumQQWFyT2SPfxTOTJJcJ4h-wKSgXCyRKNV_gJ2nSKVhOULPrp0ZaqQLacIqhQqFQ/exec";
-  const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwgpoX0z59a0uGaJrloy8S2rUfCtLw-R79G9hVYoSySxf7tfHIy1cwNUKi4Qso460xwWA/exec";
+  const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyBORe4Ow1dGuuiEY6Fo6UCnl0wyP5Ihd0FgKSHn6Ah_3bled3tOEzmTpGvjjWyw1sEiA/exec";
 
   const [gasUrl, setGasUrl] = useState(() => {
     const saved = localStorage.getItem("gas_sheet_url");
-    if (!saved || saved === OLD_GAS_URL) {
+    if (!saved || saved.includes("AKfycbx") || saved.includes("AKfycbw")) {
       localStorage.setItem("gas_sheet_url", DEFAULT_GAS_URL);
       return DEFAULT_GAS_URL;
     }
@@ -521,6 +520,9 @@ export default function App() {
             setSheetViewUrl(newSpreadsheetUrl);
             localStorage.setItem("sheet_view_url", newSpreadsheetUrl);
             batchSummary.spreadsheetUrl = newSpreadsheetUrl;
+            try {
+              navigator.clipboard.writeText(newSpreadsheetUrl);
+            } catch (cErr) {}
           }
         } catch (fetchErr) {
           console.warn("Mencoba fallback mode no-cors:", fetchErr);
@@ -588,8 +590,60 @@ export default function App() {
                 </div>
               </div>
 
+              {/* TAUTAN LANGSUNG SPREADSHEET BARU - TAMPIL LANGSUNG DI ATAS DENGAN CEPAT */}
+              <div className="mb-5">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-sm">
+                        <ExternalLink size={16} className="text-emerald-700" />
+                        <span>File Google Sheets Baru Berhasil Dibuat (Link Baru)</span>
+                      </div>
+                      <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                        Data santri otomatis dibagi per kotak asrama & kamar (tidak bercampur). Klik tombol di bawah untuk langsung membuka file spreadsheet baru Anda:
+                      </p>
+                    </div>
+                  </div>
+
+                  {(lastSubmissionBatch.spreadsheetUrl || sheetViewUrl) ? (
+                    <>
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <a
+                          href={lastSubmissionBatch.spreadsheetUrl || sheetViewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 px-4 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                        >
+                          <ExternalLink size={16} />
+                          <span>Buka Spreadsheet Baru Sekarang</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(lastSubmissionBatch.spreadsheetUrl || sheetViewUrl);
+                            alert("Link Google Sheets baru berhasil disalin ke clipboard!");
+                          }}
+                          className="px-4 py-3 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Copy size={15} />
+                          <span>Salin Link</span>
+                        </button>
+                      </div>
+
+                      <div className="text-[11px] font-mono text-emerald-800/90 bg-white/90 p-2 rounded border border-emerald-200 truncate select-all">
+                        {lastSubmissionBatch.spreadsheetUrl || sheetViewUrl}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-emerald-800">
+                      Link spreadsheet baru otomatis tersimpan di Google Drive Anda. Pastikan Web App Google Apps Script telah disiapkan.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {/* Ringkasan Data Batch */}
-              <div className="mt-5 p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm space-y-3">
+              <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm space-y-3">
                 <div className="font-semibold text-[#0F172A] pb-2 border-b border-[#E2E8F0] flex justify-between items-center">
                   <span>Rekapitulasi {lastSubmissionBatch.records.length} Santri Lintas Kamar</span>
                   <span className="text-xs font-normal text-[#64748B]">{lastSubmissionBatch.submittedAt}</span>
@@ -645,59 +699,6 @@ export default function App() {
                     <span className="text-[#64748B]">Catatan Kamar:</span> <span className="text-[#0F172A]">{lastSubmissionBatch.keterangan}</span>
                   </div>
                 )}
-
-                {/* TAUTAN LANGSUNG SPREADSHEET BARU */}
-                <div className="pt-3 border-t border-[#E2E8F0]">
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-sm">
-                          <ExternalLink size={16} className="text-emerald-700" />
-                          <span>File Google Sheets Baru Berhasil Dibuat (Link Baru)</span>
-                        </div>
-                        <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                          Laporan sesi ini telah otomatis dibuatkan <strong>File Google Spreadsheet Baru</strong> dengan <strong>Link Baru</strong> tersendiri di Google Drive, lengkap dengan KOP SMP dan kotak data santri per asrama & kelas.
-                        </p>
-                      </div>
-                    </div>
-
-                    {(lastSubmissionBatch.spreadsheetUrl || sheetViewUrl) ? (
-                      <>
-                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                          <a
-                            href={lastSubmissionBatch.spreadsheetUrl || sheetViewUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                          >
-                            <ExternalLink size={14} />
-                            <span>Buka Spreadsheet Baru (Link Baru)</span>
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(lastSubmissionBatch.spreadsheetUrl || sheetViewUrl);
-                              alert("Link Google Sheets baru berhasil disalin ke clipboard!");
-                            }}
-                            className="px-4 py-2.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            <Copy size={14} />
-                            <span>Salin Link Baru</span>
-                          </button>
-                        </div>
-
-                        <div className="text-[11px] font-mono text-emerald-800/80 bg-white/80 p-2 rounded border border-emerald-200 truncate select-all">
-                          {lastSubmissionBatch.spreadsheetUrl || sheetViewUrl}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-xs text-emerald-800">
-                        Link spreadsheet baru otomatis tersimpan di Google Drive Anda. Pastikan Web App Google Apps Script telah disiapkan.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
               </div>
 
               <div className="mt-6 pt-4 border-t border-[#E2E8F0] flex justify-center">

@@ -265,8 +265,12 @@ function doPost(e) {
  * 3. FUNGSI MEMBANGUN STRUKTUR TAMPILAN LAPORAN (KOP, KPI & KOTAK ASRAMA)
  */
 function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, tanggalPanjang, sesi, formattedTimestamp, namaPelapor, catatanUmum) {
-  // Matikan gridlines default agar tampilan bersih seperti dokumen resmi
-  sheet.setHideGridlines(true);
+  // Matikan gridlines jika didukung agar tampilan bersih seperti dokumen resmi
+  try {
+    sheet.setHiddenGridlines(true);
+  } catch (eGrid) {
+    Logger.log("Info gridlines: " + eGrid.toString());
+  }
 
   // 11 Kolom Total: No | Nama | Kelas | Kamar | Status | Keluhan | Obat | Sejak | Lokasi | Suhu | Catatan
   const TOTAL_KOLOM = 11;
@@ -358,19 +362,23 @@ function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, 
   sheet.setRowHeight(5, 32);
   sheet.setRowHeight(6, 14); // Spacer sebelum tabel data
 
-  // Kelompokkan santri per gedung asrama
+  // Kelompokkan santri per gedung asrama & kamar agar TIDAK CAMPUR
   const kelompokMap = {};
   const urutanKelompok = ["Kelas 9", "Kelas 8", "Kelas 7"];
 
   santriList.forEach(function(item) {
     const k = (item.kelas || "").trim();
-    let key = "Lainnya";
-    if (k.includes("9")) key = "Kelas 9";
-    else if (k.includes("8")) key = "Kelas 8";
-    else if (k.includes("7")) key = "Kelas 7";
+    let kelasKey = "Lainnya";
+    if (k.includes("9")) kelasKey = "Kelas 9";
+    else if (k.includes("8")) kelasKey = "Kelas 8";
+    else if (k.includes("7")) kelasKey = "Kelas 7";
 
-    if (!kelompokMap[key]) kelompokMap[key] = [];
-    kelompokMap[key].push(item);
+    const kamarRaw = (item.kamar || "Kamar Umum").trim();
+    // Kunci unik pemisah per Asrama & Kamar
+    const groupKey = kelasKey + "__" + kamarRaw;
+
+    if (!kelompokMap[groupKey]) kelompokMap[groupKey] = [];
+    kelompokMap[groupKey].push(item);
   });
 
   let barisSaatIni = 7;
@@ -388,32 +396,47 @@ function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, 
     "Catatan Tambahan"
   ];
 
+  // Urutkan kotak: Kelas 9, Kelas 8, Kelas 7, lalu urutkan nomor kamar secara numerik alami
   const daftarKunci = Object.keys(kelompokMap).sort(function(a, b) {
-    const ia = urutanKelompok.indexOf(a);
-    const ib = urutanKelompok.indexOf(b);
-    if (ia !== -1 && ib !== -1) return ia - ib;
-    if (ia !== -1) return -1;
-    if (ib !== -1) return 1;
-    return a.localeCompare(b);
+    const partsA = a.split("__");
+    const partsB = b.split("__");
+    const kelasA = partsA[0];
+    const kelasB = partsB[0];
+    const kamarA = partsA[1] || "";
+    const kamarB = partsB[1] || "";
+
+    const ia = urutanKelompok.indexOf(kelasA);
+    const ib = urutanKelompok.indexOf(kelasB);
+    if (ia !== ib) {
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+    }
+    return kamarA.localeCompare(kamarB, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   daftarKunci.forEach(function(kategoriKey) {
     const items = kelompokMap[kategoriKey];
     if (!items || items.length === 0) return;
 
+    const parts = kategoriKey.split("__");
+    const kelasKey = parts[0];
+    const kamarKey = parts[1] || "";
+
     let namaBannerKotak = "";
     let warnaBanner = "#1E293B";
-    if (kategoriKey === "Kelas 9") {
-      namaBannerKotak = "KELAS 9 • ASRAMA IPS LT 3   —   " + items.length + " Santri Dilaporkan";
-      warnaBanner = "#0F172A";
-    } else if (kategoriKey === "Kelas 8") {
-      namaBannerKotak = "KELAS 8   —   " + items.length + " Santri Dilaporkan";
-      warnaBanner = "#1E293B";
-    } else if (kategoriKey === "Kelas 7") {
-      namaBannerKotak = "KELAS 7   —   " + items.length + " Santri Dilaporkan";
-      warnaBanner = "#1E293B";
+
+    if (kelasKey === "Kelas 9") {
+      namaBannerKotak = "KELAS 9 • " + kamarKey.toUpperCase() + "   —   " + items.length + " Santri Dilaporkan";
+      warnaBanner = "#0F172A"; // Navy Slate Gelap
+    } else if (kelasKey === "Kelas 8") {
+      namaBannerKotak = "KELAS 8 • " + kamarKey.toUpperCase() + "   —   " + items.length + " Santri Dilaporkan";
+      warnaBanner = "#1E293B"; // Slate
+    } else if (kelasKey === "Kelas 7") {
+      namaBannerKotak = "KELAS 7 • " + kamarKey.toUpperCase() + "   —   " + items.length + " Santri Dilaporkan";
+      warnaBanner = "#1E293B"; // Slate
     } else {
-      namaBannerKotak = kategoriKey.toUpperCase() + "   —   " + items.length + " Santri";
+      namaBannerKotak = (kamarKey ? kamarKey.toUpperCase() : kelasKey.toUpperCase()) + "   —   " + items.length + " Santri";
       warnaBanner = "#334155";
     }
 
