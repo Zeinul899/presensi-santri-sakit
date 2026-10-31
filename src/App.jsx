@@ -403,28 +403,6 @@ export default function App() {
       return alert("Isi nama Petugas Pemeriksa / Yang Mengecek Kamar.");
     }
 
-    // Validasi setiap santri
-    for (let i = 0; i < reportedStudents.length; i++) {
-      const st = reportedStudents[i];
-      if (st.statusKehadiran === "Sakit") {
-        const hasKeluhan = (st.sakitList && st.sakitList.length > 0) || st.sakitLainnya.trim();
-        if (!hasKeluhan) {
-          return alert(`Pilih minimal satu keluhan sakit untuk santri: ${st.namaSantri} (${formatKamarAsrama(st.kelas, st.kamar)})`);
-        }
-        if (!st.obat.trim()) {
-          return alert(`Isi catatan obat untuk santri: ${st.namaSantri} (atau tulis 'Belum minum obat')`);
-        }
-      } else if (st.statusKehadiran === "Izin") {
-        if (st.alasanIzin === "LAINNYA" && !st.alasanIzinLain.trim()) {
-          return alert(`Ketik rincian alasan izin untuk santri: ${st.namaSantri}`);
-        }
-      } else if (st.statusKehadiran === "Alpa") {
-        if (st.catatanAlpa === "LAINNYA" && !st.catatanAlpaLain.trim()) {
-          return alert(`Ketik rincian alasan alpa untuk santri: ${st.namaSantri}`);
-        }
-      }
-    }
-
     setIsSubmitting(true);
     localStorage.setItem("absen_nama_pelapor", namaPelapor.trim());
 
@@ -434,18 +412,18 @@ export default function App() {
       let finalObatVal = "-";
       let finalLokasiVal = st.lokasi === "Lainnya (Ketik Manual)"
         ? (st.lokasiManual.trim() || "Lainnya")
-        : st.lokasi;
+        : (st.lokasi || "Istirahat di Kamar Asrama");
       let finalRincianVal = st.rincianSakit.trim() || "-";
 
       if (st.statusKehadiran === "Sakit") {
         const keluhanArr = [...(st.sakitList || [])];
         if (st.sakitLainnya.trim()) keluhanArr.push(`Lainnya: ${st.sakitLainnya.trim()}`);
-        finalSakitVal = keluhanArr.join(", ");
-        finalObatVal = st.obat.trim();
+        finalSakitVal = keluhanArr.length > 0 ? keluhanArr.join(", ") : "Sakit / Tidak Enak Badan (Perlu Istirahat)";
+        finalObatVal = st.obat.trim() || "- (Belum Diberikan Obat / Istirahat)";
       } else if (st.statusKehadiran === "Izin") {
         finalSakitVal = st.alasanIzin === "LAINNYA" 
           ? (st.alasanIzinLain.trim() || "Izin Khusus") 
-          : st.alasanIzin;
+          : (st.alasanIzin || "Izin Pulang ke Rumah (Dijemput Orang Tua / Wali)");
         finalObatVal = "Izin (Tidak Mengonsumsi Obat Asrama)";
         finalLokasiVal = "Istirahat di Rumah (Izin Pulang)";
         finalRincianVal = st.rincianSakit.trim() || "Izin Resmi";
@@ -459,7 +437,7 @@ export default function App() {
 
       const finalDariKapan = st.dariKapan === "PILIH_MANUAL" 
         ? (st.dariKapanManual.trim() || "Hari Ini") 
-        : st.dariKapan;
+        : (st.dariKapan || "Hari Ini");
 
       return {
         sesi,
@@ -468,7 +446,7 @@ export default function App() {
         kamarAsli: st.kamar,
         asrama: ASRAMA_CONFIG[st.kelas]?.asrama || "IPS",
         namaSantri: st.namaSantri,
-        statusKehadiran: st.statusKehadiran,
+        statusKehadiran: st.statusKehadiran || "Sakit",
         sakit: finalSakitVal,
         rincianSakit: finalRincianVal,
         obat: finalObatVal,
@@ -517,12 +495,6 @@ export default function App() {
           const resData = await res.json();
           if (resData && resData.spreadsheetUrl) {
             newSpreadsheetUrl = resData.spreadsheetUrl;
-            setSheetViewUrl(newSpreadsheetUrl);
-            localStorage.setItem("sheet_view_url", newSpreadsheetUrl);
-            batchSummary.spreadsheetUrl = newSpreadsheetUrl;
-            try {
-              navigator.clipboard.writeText(newSpreadsheetUrl);
-            } catch (cErr) {}
           }
         } catch (fetchErr) {
           console.warn("Mencoba fallback mode no-cors:", fetchErr);
@@ -532,6 +504,26 @@ export default function App() {
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(batchPayload)
           });
+          // Ambil link spreadsheet terbaru via GET (karena GET bebas masalah CORS browser)
+          try {
+            await new Promise(r => setTimeout(r, 2000));
+            const resGet = await fetch(cleanUrl);
+            const dataGet = await resGet.json();
+            if (dataGet && dataGet.spreadsheetUrl) {
+              newSpreadsheetUrl = dataGet.spreadsheetUrl;
+            }
+          } catch (getErr) {
+            console.warn("Gagal GET fallback:", getErr);
+          }
+        }
+
+        if (newSpreadsheetUrl) {
+          setSheetViewUrl(newSpreadsheetUrl);
+          localStorage.setItem("sheet_view_url", newSpreadsheetUrl);
+          batchSummary.spreadsheetUrl = newSpreadsheetUrl;
+          try {
+            navigator.clipboard.writeText(newSpreadsheetUrl);
+          } catch (cErr) {}
         }
 
         msg = `Data ${individualRecords.length} santri berhasil dicatat dan dibuatkan File Spreadsheet Baru dengan Link Baru!`;

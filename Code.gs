@@ -27,23 +27,27 @@ const NAMA_BULAN_PENDEK = [
 
 /**
  * 1. FUNGSI MENAMPILKAN STATUS SERVER (GET)
+ * Mengembalikan status server dan link spreadsheet terbaru yang dibuat.
  */
 function doGet(e) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetUrl = ss ? ss.getUrl() : "";
+    const props = PropertiesService.getScriptProperties();
+    const latestUrl = props.getProperty("LATEST_SPREADSHEET_URL") || "";
+    const latestName = props.getProperty("LATEST_SPREADSHEET_NAME") || "";
+    const latestTotal = props.getProperty("LATEST_TOTAL_SANTRI") || "0";
     
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Server Google Apps Script Presensi Asrama (v7.0) Aktif!",
-      spreadsheetUrl: sheetUrl,
+      message: "Server Google Apps Script Presensi Asrama (v7.1) Aktif!",
+      spreadsheetUrl: latestUrl,
+      spreadsheetName: latestName,
+      totalSantri: latestTotal,
       timestamp: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "Server Google Apps Script Aktif!",
-      error: err.toString()
+      status: "error",
+      message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -177,6 +181,16 @@ function doPost(e) {
 
     if (!ssBaru) {
       throw new Error("Tidak dapat menginisialisasi Google Spreadsheet.");
+    }
+
+    // Simpan info spreadsheet terbaru ke ScriptProperties agar bisa diakses via GET
+    try {
+      const props = PropertiesService.getScriptProperties();
+      props.setProperty("LATEST_SPREADSHEET_URL", newSpreadsheetUrl);
+      props.setProperty("LATEST_SPREADSHEET_NAME", judulSpreadsheetBaru);
+      props.setProperty("LATEST_TOTAL_SANTRI", String(santriList.length));
+    } catch (eProp) {
+      Logger.log("Info props: " + eProp.toString());
     }
 
     // Nama tab laporan
