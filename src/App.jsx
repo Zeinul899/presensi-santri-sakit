@@ -116,10 +116,9 @@ export default function App() {
     return saved;
   });
 
-  // Integrasi Google Apps Script (v6.0) & Spreadsheet
+  // Integrasi Google Apps Script (v7.0) & Spreadsheet
   const OLD_GAS_URL = "https://script.google.com/macros/s/AKfycbxQvxumQQWFyT2SPfxTOTJJcJ4h-wKSgXCyRKNV_gJ2nSKVhOULPrp0ZaqQLacIqhQqFQ/exec";
   const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwgpoX0z59a0uGaJrloy8S2rUfCtLw-R79G9hVYoSySxf7tfHIy1cwNUKi4Qso460xwWA/exec";
-  const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8/edit";
 
   const [gasUrl, setGasUrl] = useState(() => {
     const saved = localStorage.getItem("gas_sheet_url");
@@ -130,7 +129,12 @@ export default function App() {
     return saved;
   });
   const [sheetViewUrl, setSheetViewUrl] = useState(() => {
-    return localStorage.getItem("sheet_view_url") || DEFAULT_SHEET_URL;
+    const saved = localStorage.getItem("sheet_view_url");
+    if (saved && saved.includes("144kdft1ccg2csUMS65NhTev9u7sl8ObiNJ75ybQRKF8")) {
+      localStorage.removeItem("sheet_view_url");
+      return "";
+    }
+    return saved || "";
   });
 
   const [showSettings, setShowSettings] = useState(false);
@@ -503,15 +507,32 @@ export default function App() {
           namaPelapor: namaPelapor.trim()
         };
 
-        // Kirim HANYA SATU KALI via fetch (mencegah data ganda/terkirim 2 kali)
-        await fetch(cleanUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(batchPayload)
-        });
+        // Kirim ke Google Apps Script dan tangkap Spreadsheet Baru dengan Link Baru
+        let newSpreadsheetUrl = "";
+        try {
+          const res = await fetch(cleanUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(batchPayload)
+          });
+          const resData = await res.json();
+          if (resData && resData.spreadsheetUrl) {
+            newSpreadsheetUrl = resData.spreadsheetUrl;
+            setSheetViewUrl(newSpreadsheetUrl);
+            localStorage.setItem("sheet_view_url", newSpreadsheetUrl);
+            batchSummary.spreadsheetUrl = newSpreadsheetUrl;
+          }
+        } catch (fetchErr) {
+          console.warn("Mencoba fallback mode no-cors:", fetchErr);
+          await fetch(cleanUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(batchPayload)
+          });
+        }
 
-        msg = `Data ${individualRecords.length} santri berhasil dicatat dan dibuatkan Tab Baru di urutan terdepan Google Sheets dengan KOP Judul SMP & Tabel Kotak Per Asrama!`;
+        msg = `Data ${individualRecords.length} santri berhasil dicatat dan dibuatkan File Spreadsheet Baru dengan Link Baru!`;
       } catch (err) {
         console.error("Gagal kirim ke GAS:", err);
         msg = `Terkirim ke Google Sheets (${individualRecords.length} santri) & tersimpan di arsip lokal.`;
@@ -547,49 +568,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-[#0F172A] py-4 sm:py-8 px-3 sm:px-6 font-sans">
       <div className="max-w-2xl mx-auto pb-16">
-        
-        {/* Top Floating Status Bar */}
-        <div className="flex items-center justify-between mb-3 px-1 text-xs text-[#64748B]">
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block animate-pulse"></span>
-            <span className="text-[#0F172A] font-semibold">Presensi Asrama (Sakit/Izin/Alpa)</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <a 
-              href={sheetViewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2.5 py-1 bg-white border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-emerald-700 font-semibold transition-colors flex items-center gap-1 shadow-xs"
-              title="Buka Spreadsheet di Tab Baru"
-            >
-              <ExternalLink size={13} />
-              <span>Buka Sheets</span>
-            </a>
-            <button 
-              type="button"
-              onClick={() => setShowHistory(true)}
-              className="px-2.5 py-1 bg-white border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-[#0F172A] transition-colors flex items-center gap-1 shadow-xs"
-            >
-              <History size={13} />
-              <span>Riwayat ({history.length})</span>
-            </button>
-            <button 
-              type="button"
-              onClick={() => setShowSettings(true)}
-              className="px-2.5 py-1 bg-white border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-[#0F172A] transition-colors flex items-center gap-1 shadow-xs"
-            >
-              <Settings size={13} />
-              <span>{gasUrl ? "Sheets Aktif" : "Set Sheets"}</span>
-            </button>
-          </div>
-        </div>
 
         {/* POST-SUBMISSION CONFIRMATION */}
         {isSubmitted && lastSubmissionBatch ? (
           <div className="space-y-4">
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-6 sm:p-8 shadow-sm">
-              <div className="h-2 bg-[#0F172A] rounded-t-lg -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-6"></div>
               
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-10 h-10 rounded-full bg-emerald-50 text-[#10B981] flex items-center justify-center font-bold text-xl border border-emerald-200 shrink-0">
@@ -663,47 +646,55 @@ export default function App() {
                   </div>
                 )}
 
-                {/* TAUTAN LANGSUNG GOOGLE SHEETS */}
+                {/* TAUTAN LANGSUNG SPREADSHEET BARU */}
                 <div className="pt-3 border-t border-[#E2E8F0]">
                   <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-sm">
                           <ExternalLink size={16} className="text-emerald-700" />
-                          <span>Hasil Rekap Masuk ke Tab Baru Google Sheets</span>
+                          <span>File Google Sheets Baru Berhasil Dibuat (Link Baru)</span>
                         </div>
                         <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                          Laporan sesi ini telah otomatis dibuatkan <strong>Tab Baru</strong> di urutan paling depan dengan <strong>KOP Judul SMP</strong> dan <strong>Kotak Data Terpisah Per Asrama</strong>.
+                          Laporan sesi ini telah otomatis dibuatkan <strong>File Google Spreadsheet Baru</strong> dengan <strong>Link Baru</strong> tersendiri di Google Drive, lengkap dengan KOP SMP dan kotak data santri per asrama & kelas.
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                      <a
-                        href={sheetViewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                      >
-                        <ExternalLink size={14} />
-                        <span>Buka Spreadsheet Google Sheets</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(sheetViewUrl);
-                          alert("Link Google Sheets berhasil disalin ke clipboard!");
-                        }}
-                        className="px-4 py-2.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Copy size={14} />
-                        <span>Salin Link Sheets</span>
-                      </button>
-                    </div>
+                    {(lastSubmissionBatch.spreadsheetUrl || sheetViewUrl) ? (
+                      <>
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <a
+                            href={lastSubmissionBatch.spreadsheetUrl || sheetViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                          >
+                            <ExternalLink size={14} />
+                            <span>Buka Spreadsheet Baru (Link Baru)</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(lastSubmissionBatch.spreadsheetUrl || sheetViewUrl);
+                              alert("Link Google Sheets baru berhasil disalin ke clipboard!");
+                            }}
+                            className="px-4 py-2.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <Copy size={14} />
+                            <span>Salin Link Baru</span>
+                          </button>
+                        </div>
 
-                    <div className="text-[11px] font-mono text-emerald-800/80 bg-white/80 p-2 rounded border border-emerald-200 truncate select-all">
-                      {sheetViewUrl}
-                    </div>
+                        <div className="text-[11px] font-mono text-emerald-800/80 bg-white/80 p-2 rounded border border-emerald-200 truncate select-all">
+                          {lastSubmissionBatch.spreadsheetUrl || sheetViewUrl}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs text-emerald-800">
+                        Link spreadsheet baru otomatis tersimpan di Google Drive Anda. Pastikan Web App Google Apps Script telah disiapkan.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -724,12 +715,8 @@ export default function App() {
           /* FORM UTAMA */
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* HEADER CARD - BERSIH, SESI PAGI / MALAM */}
+            {/* HEADER CARD - BERSIH & TANPA STRIP ATAS */}
             <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
-              <div className="h-2.5 bg-[#0F172A] relative">
-                <div className="absolute top-0 right-0 h-full w-1/3 bg-[#38BDF8] opacity-80"></div>
-              </div>
-
               <div className="p-5 sm:p-6">
                 <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
                   Presensi & Pendataan Santri Per Kamar
@@ -1363,6 +1350,32 @@ export default function App() {
           </form>
         )}
 
+        {/* FOOTER MINIMALIS */}
+        <div className="mt-8 pt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#64748B]">
+          <div className="font-medium text-[#0F172A]/70">
+            Presensi Asrama &bull; SMP
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => setShowHistory(true)}
+              className="hover:text-[#0F172A] flex items-center gap-1 transition-colors"
+            >
+              <History size={13} />
+              <span>Riwayat ({history.length})</span>
+            </button>
+            <span className="text-slate-300">|</span>
+            <button 
+              type="button"
+              onClick={() => setShowSettings(true)}
+              className="hover:text-[#0F172A] flex items-center gap-1 transition-colors"
+            >
+              <Settings size={13} />
+              <span>Pengaturan Sheets</span>
+            </button>
+          </div>
+        </div>
+
         {/* MODAL SETTINGS */}
         {showSettings && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1399,23 +1412,23 @@ export default function App() {
                     </div>
                   )}
                   <p className="mt-1 text-[11px] text-[#64748B]">
-                    Endpoint v6.0 otomatis membuat Tab Baru terdepan per laporan dengan KOP SMP.
+                    Endpoint v7.0 otomatis membuat File Spreadsheet Baru dengan Link Baru di Google Drive untuk setiap pengiriman laporan.
                   </p>
                 </div>
 
                 <div>
                   <label className="block font-semibold text-[#0F172A] mb-1">
-                    Link File Google Sheets (Untuk Tombol Akses Langsung):
+                    Link File Google Sheets Default / Master (Opsional):
                   </label>
                   <input
                     type="url"
-                    placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit (atau kosongkan)"
                     value={sheetViewUrl}
                     onChange={(e) => setSheetViewUrl(e.target.value)}
                     className="w-full p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs font-mono focus:outline-none focus:border-[#0F172A]"
                   />
                   <p className="mt-1 text-[11px] text-[#64748B]">
-                    Link spreadsheet untuk tombol "Buka Sheets" di header dan konfirmasi.
+                    Otomatis terisi link baru setelah Anda mengirimkan laporan, atau masukkan link master spreadsheet jika ingin menyimpan manual.
                   </p>
                 </div>
 
@@ -1484,15 +1497,17 @@ export default function App() {
                       </div>
 
                       <div className="pt-2 border-t border-[#E2E8F0] flex justify-end gap-2">
-                        <a
-                          href={sheetViewUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2.5 py-1 bg-emerald-700 text-white rounded text-[11px] font-medium hover:bg-emerald-800 flex items-center gap-1"
-                        >
-                          <ExternalLink size={12} />
-                          <span>Buka Sheets</span>
-                        </a>
+                        {(batch.spreadsheetUrl || sheetViewUrl) && (
+                          <a
+                            href={batch.spreadsheetUrl || sheetViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 bg-emerald-700 text-white rounded text-[11px] font-medium hover:bg-emerald-800 flex items-center gap-1"
+                          >
+                            <ExternalLink size={12} />
+                            <span>Buka Sheets Baru</span>
+                          </a>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
