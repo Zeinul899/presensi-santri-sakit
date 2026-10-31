@@ -142,11 +142,19 @@ function doPost(e) {
     let santriList = [];
     if (Array.isArray(data.santriItems) && data.santriItems.length > 0) {
       santriList = data.santriItems;
-    } else if (data.namaSantri) {
+    } else if (Array.isArray(data.santriList) && data.santriList.length > 0) {
+      santriList = data.santriList;
+    } else if (Array.isArray(data.items) && data.items.length > 0) {
+      santriList = data.items;
+    } else if (Array.isArray(data.santri) && data.santri.length > 0) {
+      santriList = data.santri;
+    } else if (Array.isArray(data) && data.length > 0) {
+      santriList = data;
+    } else if (data.namaSantri || data.nama) {
       santriList = [{
         kelas: data.kelas || "Kelas 9",
         kamar: data.kamar || "-",
-        namaSantri: data.namaSantri,
+        namaSantri: data.namaSantri || data.nama,
         statusKehadiran: data.statusKehadiran || data.status || "Sakit",
         sakit: data.sakit || data.keluhan || "-",
         rincianSakit: data.rincianSakit || data.rincianGejala || "-",
@@ -233,7 +241,7 @@ function doPost(e) {
             sesi,
             rowKelas,
             rowKamar,
-            item.namaSantri || "-",
+            item.namaSantri || item.nama || "-",
             rowStatus,
             item.sakit || item.keluhan || item.alasan || "-",
             item.rincianSakit || item.rincianGejala || "-",
@@ -488,7 +496,7 @@ function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, 
       const rowKamar = item.kamar || "-";
       const rowData = [
         idx + 1,
-        item.namaSantri || "-",
+        item.namaSantri || item.nama || "-",
         rowKelas,
         rowKamar,
         rowStatus,
