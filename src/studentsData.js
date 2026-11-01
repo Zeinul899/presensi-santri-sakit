@@ -104,7 +104,6 @@ export const ROSTER_DATA = {
       "Baladraf Abdullah El Nayyiro",
       "Danish Natan Nurdaffa",
       "Denal Putra Febrianto",
-      "Muhammad",
       "M. Sahal Misyari",
       "Mahir Alvin Ali",
       "Muhammad Ammar Hafizh",

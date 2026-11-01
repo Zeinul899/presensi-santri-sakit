@@ -35,10 +35,23 @@ function doGet(e) {
     const latestUrl = props.getProperty("LATEST_SPREADSHEET_URL") || "";
     const latestName = props.getProperty("LATEST_SPREADSHEET_NAME") || "";
     const latestTotal = props.getProperty("LATEST_TOTAL_SANTRI") || "0";
+    const currentId = props.getProperty("CURRENT_SPREADSHEET_ID") || "";
+
+    // Pastikan akses publik terbuka agar tidak terkunci/diblokir saat dibuka di HP
+    if (currentId) {
+      try {
+        const file = DriveApp.getFileById(currentId);
+        try {
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+        } catch(e1) {
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        }
+      } catch(eShare) {}
+    }
     
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Server Google Apps Script Presensi Asrama (v7.1) Aktif!",
+      message: "Server Google Apps Script Presensi Asrama (v7.2) Aktif!",
       spreadsheetUrl: latestUrl,
       spreadsheetName: latestName,
       totalSantri: latestTotal,
@@ -121,12 +134,24 @@ function doPost(e) {
 
     const now = new Date();
     const formattedTimestamp = Utilities.formatDate(now, "Asia/Jakarta", "dd/MM/yyyy HH:mm:ss");
-    const tglNomor = now.getDate();
-    const bulanIndex = now.getMonth();
-    const tahunNomor = now.getFullYear();
+    let tglNomor = now.getDate();
+    let bulanIndex = now.getMonth();
+    let tahunNomor = now.getFullYear();
+
+    if (data.tanggal && typeof data.tanggal === "string" && data.tanggal.includes("-")) {
+      const parts = data.tanggal.split("-");
+      if (parts.length === 3) {
+        tahunNomor = parseInt(parts[0], 10) || tahunNomor;
+        const b = parseInt(parts[1], 10) - 1;
+        if (b >= 0 && b <= 11) bulanIndex = b;
+        tglNomor = parseInt(parts[2], 10) || tglNomor;
+      }
+    }
+
     const namaBulanPanjang = NAMA_BULAN_INDO[bulanIndex];
     const namaBulanPendek = NAMA_BULAN_PENDEK[bulanIndex];
     const tanggalPanjang = tglNomor + " " + namaBulanPanjang + " " + tahunNomor;
+    const tanggalIso = tahunNomor + "-" + String(bulanIndex + 1).padStart(2, "0") + "-" + String(tglNomor).padStart(2, "0");
     const sesi = data.sesi || "Pagi";
 
     // Bersihkan nama pelapor
@@ -171,71 +196,147 @@ function doPost(e) {
     }
 
     // ========================================================================
-    // TAHAP 1: BUAT FILE SPREADSHEET BARU DENGAN LINK BARU DI GOOGLE DRIVE
+    // TAHAP 1: KELOLA FILE SPREADSHEET (1 HARI LINK SAMA, LEWAT 1 HARI BUAT BARU)
     // ========================================================================
-    const judulSpreadsheetBaru = "Laporan Rekap Santri Sakit SMP - " + tanggalPanjang + " (" + sesi + ")";
-    let ssBaru = null;
-    let newSpreadsheetUrl = "";
+    const judulSpreadsheetHarian = "Laporan Rekap Santri Sakit SMP - " + tanggalPanjang;
+    let ssTarget = null;
+    let spreadsheetUrl = "";
+    const props = PropertiesService.getScriptProperties();
+    const lastDate = (props.getProperty("CURRENT_SPREADSHEET_DATE") || "").trim();
+    const lastId = (props.getProperty("CURRENT_SPREADSHEET_ID") || "").trim();
 
-    try {
-      // Buat file Google Spreadsheet baru tersendiri di Drive
-      ssBaru = SpreadsheetApp.create(judulSpreadsheetBaru);
-      newSpreadsheetUrl = ssBaru.getUrl();
-    } catch (errCreate) {
-      Logger.log("Gagal buat spreadsheet baru via create, menggunakan active: " + errCreate.toString());
-      ssBaru = SpreadsheetApp.getActiveSpreadsheet();
-      if (ssBaru) newSpreadsheetUrl = ssBaru.getUrl();
+    // 1. Cek apakah sudah ada file spreadsheet untuk hari ini (Link sama dalam 1 hari)
+    if (lastDate === tanggalIso && lastId) {
+      try {
+        ssTarget = SpreadsheetApp.openById(lastId);
+        spreadsheetUrl = ssTarget.getUrl();
+        Logger.log("Menggunakan spreadsheet hari ini (" + tanggalIso + "): " + lastId);
+      } catch (errOpen) {
+        Logger.log("Gagal membuka spreadsheet lama, akan buat baru: " + errOpen.toString());
+        ssTarget = null;
+      }
     }
 
-    if (!ssBaru) {
-      throw new Error("Tidak dapat menginisialisasi Google Spreadsheet.");
+    // 2. Jika belum ada atau tanggal sudah berganti (lewat 1 hari), buat spreadsheet BARU
+    if (!ssTarget) {
+      try {
+        ssTarget = SpreadsheetApp.create(judulSpreadsheetHarian);
+        spreadsheetUrl = ssTarget.getUrl();
+      } catch (errCreate) {
+        Logger.log("Gagal SpreadsheetApp.create: " + errCreate.toString());
+        ssTarget = SpreadsheetApp.getActiveSpreadsheet();
+        if (ssTarget) spreadsheetUrl = ssTarget.getUrl();
+      }
+
+      if (!ssTarget) {
+        throw new Error("Tidak dapat menginisialisasi Google Spreadsheet.");
+      }
+
+      // Simpan tanggal dan ID file baru hari ini ke ScriptProperties
+      props.setProperty("CURRENT_SPREADSHEET_DATE", tanggalIso);
+      props.setProperty("CURRENT_SPREADSHEET_ID", ssTarget.getId());
+      props.setProperty("CURRENT_SPREADSHEET_URL", spreadsheetUrl);
     }
 
-    // Simpan info spreadsheet terbaru ke ScriptProperties agar bisa diakses via GET
+    // 3. Pastikan izin berbagi SIAPA SAJA DENGAN LINK AKTIF agar tidak diblokir/minta akses di HP atau akun lain
     try {
-      const props = PropertiesService.getScriptProperties();
-      props.setProperty("LATEST_SPREADSHEET_URL", newSpreadsheetUrl);
-      props.setProperty("LATEST_SPREADSHEET_NAME", judulSpreadsheetBaru);
+      const driveFile = DriveApp.getFileById(ssTarget.getId());
+      try {
+        driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+      } catch (eEdit) {
+        driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+    } catch (eDrive) {
+      Logger.log("Info setting sharing Drive: " + eDrive.toString());
+    }
+
+    // Update info spreadsheet terbaru untuk respon GET fallback
+    try {
+      props.setProperty("LATEST_SPREADSHEET_URL", spreadsheetUrl);
+      props.setProperty("LATEST_SPREADSHEET_NAME", judulSpreadsheetHarian);
       props.setProperty("LATEST_TOTAL_SANTRI", String(santriList.length));
     } catch (eProp) {
       Logger.log("Info props: " + eProp.toString());
     }
 
-    // Nama tab laporan
-    const namaTabBaru = tglNomor + " " + namaBulanPendek + " " + tahunNomor + " - " + sesi;
-    let sheetTarget = ssBaru.getSheets()[0];
-    sheetTarget.setName(namaTabBaru);
+    // ========================================================================
+    // TAHAP 2: PISAHKAN TAB SESI (PAGI, MALAM, DLL) DI DALAM FILE HARI INI
+    // ========================================================================
+    const namaTabSesi = "Sesi " + sesi;
+    let sheetSesi = ssTarget.getSheetByName(namaTabSesi);
 
-    // Bangun tampilan lengkap di spreadsheet baru
-    bangunTampilanLaporan(sheetTarget, santriList, namaBulanPanjang, tahunNomor, tanggalPanjang, sesi, formattedTimestamp, namaPelapor, catatanUmum);
+    if (!sheetSesi) {
+      const existingSheets = ssTarget.getSheets();
+      // Jika hanya ada sheet bawaan (Sheet1), ganti namanya
+      if (existingSheets.length === 1 && (existingSheets[0].getName() === "Sheet1" || existingSheets[0].getName().toLowerCase().includes("sheet"))) {
+        sheetSesi = existingSheets[0];
+        sheetSesi.setName(namaTabSesi);
+      } else {
+        // Buat sheet/tab baru untuk sesi ini di urutan paling depan
+        sheetSesi = ssTarget.insertSheet(namaTabSesi, 0);
+      }
+    } else {
+      // Jika tab sesi sudah ada (kirim ulang/update), bersihkan isinya untuk diisi data terbaru
+      sheetSesi.clear();
+    }
+
+    // Bangun tampilan rapi di tab sesi tersebut (semua santri ditampilkan lengkap tanpa batasan)
+    bangunTampilanLaporan(sheetSesi, santriList, namaBulanPanjang, tahunNomor, tanggalPanjang, sesi, formattedTimestamp, namaPelapor, catatanUmum);
 
     // ========================================================================
-    // TAHAP 2: SIMPAN ARSIP KE SPREADSHEET CONTAINER (JIKA BERBEDA)
+    // TAHAP 3: REKAP KE TAB MASTER "Semua Riwayat" DI DALAM FILE HARIAN
+    // ========================================================================
+    try {
+      let sheetMasterHarian = ssTarget.getSheetByName(NAMA_SHEET_MASTER);
+      if (!sheetMasterHarian) {
+        sheetMasterHarian = ssTarget.insertSheet(NAMA_SHEET_MASTER);
+        buatHeaderKolomMaster(sheetMasterHarian);
+      }
+      const pelaporMaster = namaPelapor || "-";
+      santriList.forEach(function(item) {
+        const rowStatus = item.statusKehadiran || item.status || "Sakit";
+        const rowKelas = item.kelas || "-";
+        const rowKamar = item.kamar || "-";
+        const rowMaster = [
+          formattedTimestamp,
+          sesi,
+          rowKelas,
+          rowKamar,
+          item.namaSantri || item.nama || "-",
+          rowStatus,
+          item.sakit || item.keluhan || item.alasan || "-",
+          item.rincianSakit || item.rincianGejala || "-",
+          item.obat || "-",
+          item.dariKapan || item.sejak || "-",
+          item.lokasi || "-",
+          item.suhuTubuh || item.suhu || "-",
+          catatanUmum,
+          pelaporMaster,
+          spreadsheetUrl
+        ];
+        sheetMasterHarian.appendRow(rowMaster);
+        formatBarisMaster(sheetMasterHarian, rowStatus);
+      });
+    } catch (eMasterHarian) {
+      Logger.log("Info master harian: " + eMasterHarian.toString());
+    }
+
+    // ========================================================================
+    // TAHAP 4: SIMPAN JUGA KE CONTAINER JIKA BERBEDA (ARSIP GLOBAL LENGKAP)
     // ========================================================================
     const ssContainer = SpreadsheetApp.getActiveSpreadsheet();
-    if (ssContainer && ssContainer.getId() !== ssBaru.getId()) {
+    if (ssContainer && ssContainer.getId() !== ssTarget.getId()) {
       try {
-        // Buat tab arsip di spreadsheet penampung
-        let sheetArsip = ssContainer.insertSheet(namaTabBaru, 0);
-        bangunTampilanLaporan(sheetArsip, santriList, namaBulanPanjang, tahunNomor, tanggalPanjang, sesi, formattedTimestamp, namaPelapor, catatanUmum);
-      } catch (eTab) {
-        Logger.log("Info tab arsip container: " + eTab.toString());
-      }
-
-      try {
-        // Catat ke tab master Semua Riwayat
-        let sheetMaster = ssContainer.getSheetByName(NAMA_SHEET_MASTER);
-        if (!sheetMaster) {
-          sheetMaster = ssContainer.insertSheet(NAMA_SHEET_MASTER);
-          buatHeaderKolomMaster(sheetMaster);
+        let sheetMasterGlobal = ssContainer.getSheetByName(NAMA_SHEET_MASTER);
+        if (!sheetMasterGlobal) {
+          sheetMasterGlobal = ssContainer.insertSheet(NAMA_SHEET_MASTER);
+          buatHeaderKolomMaster(sheetMasterGlobal);
         }
-
         const pelaporMaster = namaPelapor || "-";
         santriList.forEach(function(item) {
           const rowStatus = item.statusKehadiran || item.status || "Sakit";
           const rowKelas = item.kelas || "-";
           const rowKamar = item.kamar || "-";
-
           const rowMaster = [
             formattedTimestamp,
             sesi,
@@ -251,23 +352,22 @@ function doPost(e) {
             item.suhuTubuh || item.suhu || "-",
             catatanUmum,
             pelaporMaster,
-            newSpreadsheetUrl
+            spreadsheetUrl
           ];
-
-          sheetMaster.appendRow(rowMaster);
-          formatBarisMaster(sheetMaster, rowStatus);
+          sheetMasterGlobal.appendRow(rowMaster);
+          formatBarisMaster(sheetMasterGlobal, rowStatus);
         });
-      } catch (eMaster) {
-        Logger.log("Info master container: " + eMaster.toString());
+      } catch (eGlobal) {
+        Logger.log("Info arsip global: " + eGlobal.toString());
       }
     }
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Laporan berhasil dibuat di Spreadsheet Baru dengan Link Baru!",
-      spreadsheetUrl: newSpreadsheetUrl,
-      spreadsheetName: judulSpreadsheetBaru,
-      tabBaru: namaTabBaru,
+      message: "Laporan sesi " + sesi + " berhasil disimpan di file " + tanggalPanjang + "!",
+      spreadsheetUrl: spreadsheetUrl,
+      spreadsheetName: judulSpreadsheetHarian,
+      tabBaru: namaTabSesi,
       jumlahSantri: santriList.length
     })).setMimeType(ContentService.MimeType.JSON);
 
