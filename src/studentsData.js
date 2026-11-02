@@ -29,13 +29,13 @@ export const ROSTER_DATA = {
       "Muhammad Syauky El Hafidzin",
       "Ragil Setiawan",
       "Sulthan Abimanyu Amapuradirja",
-      "Syahdan Nizar Syakib",
+      "Ahmad Alfian Risqie Mutha",
       "Zidni Fadhillah Saputra"
     ],
     "1.03": [
       "Abid Akhmat Fadhil",
       "Abyaz Rasyid Alfarizi",
-      "Ahmad Alfian Risqie Mutha",
+      "Syahdan Nizar Syakib",
       "Ahmad Azka Arifiansyah",
       "Ahmad Nabil Almer",
       "Fadhil Taufiqurrahman",
