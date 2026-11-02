@@ -26,6 +26,36 @@ const NAMA_BULAN_PENDEK = [
 ];
 
 /**
+ * 0. FUNGSI OTORISASI IZIN GOOGLE DRIVE (JALANKAN SEKALI DARI EDITOR)
+ * Agar file TIDAK DIBLOKIR di HP/akun lain:
+ * Pilih fungsi "otorisasiAksesPublikDrive" di toolbar atas editor Apps Script, lalu klik "Run / Jalankan".
+ * Muncul pop-up "Authorization required" -> klik "Review permissions" -> pilih akun -> "Advanced" -> "Go to... (unsafe)" -> "Allow".
+ */
+function otorisasiAksesPublikDrive() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const currentId = props.getProperty("CURRENT_SPREADSHEET_ID");
+    if (currentId) {
+      const f = DriveApp.getFileById(currentId);
+      try {
+        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+      } catch (e1) {
+        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+      Logger.log("BERHASIL! Spreadsheet (" + currentId + ") sekarang TERBUKA untuk siapa saja dengan link.");
+    } else {
+      const dummy = SpreadsheetApp.create("Tes Izin Drive");
+      const f = DriveApp.getFileById(dummy.getId());
+      f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      dummy.setTrashed(true);
+      Logger.log("BERHASIL! Izin Google Drive sudah diaktifkan.");
+    }
+  } catch (err) {
+    Logger.log("Error otorisasi: " + err.toString());
+  }
+}
+
+/**
  * 1. FUNGSI MENAMPILKAN STATUS SERVER (GET)
  * Mengembalikan status server dan link spreadsheet terbaru yang dibuat.
  */
