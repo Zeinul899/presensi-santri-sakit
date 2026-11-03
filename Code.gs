@@ -55,24 +55,26 @@ const NAMA_BULAN_PENDEK = [
  * 0. FUNGSI OTORISASI IZIN GOOGLE DRIVE (JALANKAN SEKALI DARI EDITOR)
  * Berfungsi mengaktifkan izin DriveApp selamanya agar semua spreadsheet
  * (hari ini, malam nanti, besok dan seterusnya) otomatis berstatus publik.
+ * 
+ * PENTING:
+ * Fungsi ini SENGAJA dibuat TANPA try-catch agar Google Apps Script
+ * WAJIB menampilkan pop-up persetujuan izin "https://www.googleapis.com/auth/drive"!
  */
 function otorisasiAksesPublikDrive() {
-  DriveApp.getRootFolder().getName();
+  // 1. Buat file percobaan kecil dan ubah izin sharing-nya (memaksa izin tulis Drive)
+  const testFile = DriveApp.createFile("Pemicu_Otorisasi_Drive_Presensi.txt", "Izin Google Drive Aktif");
+  testFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+  testFile.setTrashed(true); // Langsung hapus file percobaan ke sampah
 
+  // 2. Langsung jadikan spreadsheet hari ini berstatus publik
   const props = PropertiesService.getScriptProperties();
   const currentId = props.getProperty("CURRENT_SPREADSHEET_ID");
   if (currentId) {
-    try {
-      const f = DriveApp.getFileById(currentId);
-      try {
-        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
-      } catch (e1) {
-        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      }
-      Logger.log("BERHASIL! Spreadsheet (" + currentId + ") sekarang TERBUKA untuk siapa saja dengan link.");
-    } catch (eFile) {
-      Logger.log("Info file: " + eFile.toString());
-    }
+    const f = DriveApp.getFileById(currentId);
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+    Logger.log("BERHASIL! Spreadsheet (" + currentId + ") sekarang 100% TERBUKA PUBLIK.");
+  } else {
+    Logger.log("BERHASIL! Izin Google Drive telah aktif 100% untuk seluruh file di masa depan.");
   }
 }
 
