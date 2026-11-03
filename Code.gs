@@ -67,16 +67,21 @@ function doGet(e) {
     const latestTotal = props.getProperty("LATEST_TOTAL_SANTRI") || "0";
     const currentId = props.getProperty("CURRENT_SPREADSHEET_ID") || "";
 
+    let driveIzinStatus = "TIDAK_DICEK";
     // Pastikan akses publik terbuka agar tidak terkunci/diblokir saat dibuka di HP
     if (currentId) {
       try {
         const file = DriveApp.getFileById(currentId);
         try {
           file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+          driveIzinStatus = "TERBUKA_PUBLIK_EDIT";
         } catch(e1) {
           file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          driveIzinStatus = "TERBUKA_PUBLIK_VIEW";
         }
-      } catch(eShare) {}
+      } catch(eShare) {
+        driveIzinStatus = "PERLU_OTORISASI: " + eShare.toString();
+      }
     }
     
     return ContentService.createTextOutput(JSON.stringify({
@@ -85,6 +90,7 @@ function doGet(e) {
       spreadsheetUrl: latestUrl,
       spreadsheetName: latestName,
       totalSantri: latestTotal,
+      driveAkses: driveIzinStatus,
       timestamp: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
