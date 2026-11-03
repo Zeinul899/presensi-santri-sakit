@@ -56,7 +56,10 @@ function otorisasiAksesPublikDrive() {
 function doGet(e) {
   try {
     const props = PropertiesService.getScriptProperties();
-    const latestUrl = props.getProperty("LATEST_SPREADSHEET_URL") || "";
+    let latestUrl = props.getProperty("LATEST_SPREADSHEET_URL") || "";
+    if (latestUrl && !latestUrl.includes("usp=sharing")) {
+      latestUrl = latestUrl.replace(/\/edit.*$/, "") + "/edit?usp=sharing";
+    }
     const latestName = props.getProperty("LATEST_SPREADSHEET_NAME") || "";
     const latestTotal = props.getProperty("LATEST_TOTAL_SANTRI") || "0";
     const currentId = props.getProperty("CURRENT_SPREADSHEET_ID") || "";
@@ -268,6 +271,12 @@ function doPost(e) {
       props.setProperty("CURRENT_SPREADSHEET_URL", spreadsheetUrl);
     }
 
+    // Format link menjadi link sharing publik resmi Google Sheets (?usp=sharing)
+    let publicSharingUrl = spreadsheetUrl;
+    if (publicSharingUrl && !publicSharingUrl.includes("usp=sharing")) {
+      publicSharingUrl = publicSharingUrl.replace(/\/edit.*$/, "") + "/edit?usp=sharing";
+    }
+
     // 3. Pastikan izin berbagi SIAPA SAJA DENGAN LINK AKTIF agar tidak diblokir/minta akses di HP atau akun lain
     try {
       const driveFile = DriveApp.getFileById(ssTarget.getId());
@@ -282,7 +291,7 @@ function doPost(e) {
 
     // Update info spreadsheet terbaru untuk respon GET fallback
     try {
-      props.setProperty("LATEST_SPREADSHEET_URL", spreadsheetUrl);
+      props.setProperty("LATEST_SPREADSHEET_URL", publicSharingUrl);
       props.setProperty("LATEST_SPREADSHEET_NAME", judulSpreadsheetHarian);
       props.setProperty("LATEST_TOTAL_SANTRI", String(santriList.length));
     } catch (eProp) {
@@ -342,7 +351,7 @@ function doPost(e) {
           item.suhuTubuh || item.suhu || "-",
           catatanUmum,
           pelaporMaster,
-          spreadsheetUrl
+          publicSharingUrl
         ];
         sheetMasterHarian.appendRow(rowMaster);
         formatBarisMaster(sheetMasterHarian, rowStatus);
@@ -382,7 +391,7 @@ function doPost(e) {
             item.suhuTubuh || item.suhu || "-",
             catatanUmum,
             pelaporMaster,
-            spreadsheetUrl
+            publicSharingUrl
           ];
           sheetMasterGlobal.appendRow(rowMaster);
           formatBarisMaster(sheetMasterGlobal, rowStatus);
@@ -395,7 +404,7 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: "Laporan sesi " + sesi + " berhasil disimpan di file " + tanggalPanjang + "!",
-      spreadsheetUrl: spreadsheetUrl,
+      spreadsheetUrl: publicSharingUrl,
       spreadsheetName: judulSpreadsheetHarian,
       tabBaru: namaTabSesi,
       jumlahSantri: santriList.length
