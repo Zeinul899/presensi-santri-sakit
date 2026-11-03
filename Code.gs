@@ -1,40 +1,42 @@
 /**
  * ============================================================================
  * GOOGLE APPS SCRIPT - PRESENSI SANTRI ASRAMA (SAKIT, IZIN, ALPA)
- * Versi 8.0 (Multi-Sender Kumulatif & Pemisahan Gedung Asrama 3/2/1)
+ * Versi 8.1 (Multi-Sender 4 Petugas Piket, Kotak Kamar Standar, Link Publik Abadi)
  * ============================================================================
  * 
- * FITUR UTAMA VERSI 8.0:
- * 1. MULTI-SENDER KUMULATIF (1 HARI BANYAK PENGURUS/PEMBINA):
- *    - Jika dalam 1 hari ada 2 orang atau lebih yang mengirim formulir (misal:
- *      Pembina Asrama 1 kirim Kelas 7, lalu Pembina Asrama 2 kirim Kelas 8),
- *      data dari SEMUA pengirim otomatis DIGABUNGKAN (KUMULATIF) di tab sesi
- *      hari tersebut tanpa saling menimpa atau menghilangkan data sebelumnya!
- *    - Header laporan otomatis menampilkan seluruh nama pembina pelapor
- *      (contoh: "Ust. Faisal (Asrama 1) • Ust. Huda (Asrama 2)").
+ * CARA KERJA SISTEM (PAGI, MALAM & HARI-HARI BERIKUTNYA):
+ * 1. MULTI-SENDER (4 ORANG JAGA ASRAMA):
+ *    - 2 Orang Jaga kirim Kelas 7 & Kelas 8 dari HP mereka.
+ *    - 1 Orang Jaga kirim Kelas 9 dari HP-nya.
+ *    - Data otomatis TERGABUNG di SATU file spreadsheet yang sama tanpa saling tindih!
+ *    - Di tab sesi, kotak kamar Kelas 9, Kelas 8, dan Kelas 7 tersusun berurutan dengan rapi.
  * 
- * 2. PEMISAHAN DATA GEDUNG ASRAMA & JENJANG KELAS (BERSIH & TERPISAH):
- *    - Gedung Asrama 3 • Kelas 9
- *    - Gedung Asrama 2 • Kelas 8
- *    - Gedung Asrama 1 • Kelas 7
- *    Setiap gedung/kelas memiliki Banner Utama yang tegas, dan di dalamnya
- *    tersusun rapi kotak-kotak tabel kamar masing-masing.
+ * 2. SESI PAGI & SESI MALAM DALAM 1 FILE HARIAN:
+ *    - Sesi Pagi masuk ke tab "Sesi Pagi".
+ *    - Sesi Malam masuk ke tab "Sesi Malam".
+ *    - Tab "Semua Riwayat" menyimpan seluruh log dari pagi sampai malam secara abadi.
  * 
- * 3. 1 HARI 1 FILE SPREADSHEET DENGAN LINK SHARING PUBLIK:
- *    - Semua sesi (Pagi & Malam) dan semua kiriman pembina pada hari yang sama
- *      tersimpan rapi di dalam 1 file spreadsheet harian yang sama.
- *    - Begitu berganti hari kalender (lewat pukul 00:00), sistem otomatis
- *      membuat file Google Spreadsheet BARU dengan link baru.
- *    - Link sharing otomatis berformat "?usp=sharing" sehingga langsung dapat
- *      dibuka oleh siapa saja tanpa perlu request akses.
+ * 3. HARI BERGANTI (BESOK & SETERUSNYA):
+ *    - Lewat pukul 00:00 (ganti tanggal kalender), script otomatis membuat file Google Spreadsheet BARU.
+ *    - Link baru otomatis dibuat publik (?usp=sharing) sehingga siapa pun bisa membuka tanpa minta akses.
  * 
- * CARA MEMPERBARUI DI GOOGLE APPS SCRIPT:
- * 1. Buka Google Spreadsheet Anda > Extensions (Ekstensi) > Apps Script.
- * 2. HAPUS SEMUA teks bawaan di editor Apps Script (Ctrl+A lalu Delete)
- *    sehingga halamannya benar-benar kosong bersih.
- * 3. Paste SEMUA isi file ini dari baris 1 sampai baris terakhir.
- * 4. Klik icon Save (Ctrl+S).
- * 5. Klik Deploy (Terapkan) > Manage deployments (Kelola penerapan) > Edit (ikon pensil):
+ * PANDUAN OTORISASI AGAR SHEETS SELALU OTOMATIS PUBLIK (DILAKUKAN 1 KALI SAJA):
+ * 1. Di editor Apps Script, di dropdown fungsi (sebelah tombol Debug), pilih "otorisasiAksesPublikDrive".
+ * 2. Klik tombol "Run" (Jalankan).
+ * 3. Jika muncul "Authorization required (Otorisasi diperlukan)":
+ *    - Klik "Review Permissions (Tinjau Izin)".
+ *    - Pilih akun Google Anda.
+ *    - Klik "Advanced (Lanjutan)" di kiri bawah -> Klik "Go to Presensi Santri Asrama (Buka/tidak aman)".
+ *    - Klik "Allow (Izinkan)".
+ * 4. SELESAI! Sekali diizinkan, DriveApp aktif selamanya.
+ *    Setiap spreadsheet baru (pagi, malam, besok, lusa) otomatis TERBUKA PUBLIK.
+ * 
+ * CARA DEPLOY KE VERSI TERBARU:
+ * 1. Salin seluruh isi file ini (Ctrl+A lalu Ctrl+C).
+ * 2. Buka spreadsheet induk Anda > Extensions (Ekstensi) > Apps Script.
+ * 3. Hapus semua teks lama di editor (Ctrl+A lalu Delete) dan Paste (Ctrl+V) kode ini.
+ * 4. Klik ikon Save (Ctrl+S).
+ * 5. Klik Deploy > Manage deployments > Klik ikon Pensil (Edit):
  *    - Version: New version (Versi baru)
  *    - Klik Deploy.
  */
@@ -50,10 +52,9 @@ const NAMA_BULAN_PENDEK = [
 ];
 
 /**
- * 0. FUNGSI OTORISASI IZIN GOOGLE DRIVE (JALANKAN SEKALI DARI EDITOR JIKA DIMINTA)
- * Baris DriveApp di bawah sengaja dibuat TANPA try-catch agar Google Apps Script
- * memunculkan jendela pop-up otorisasi izin Drive jika belum pernah disetujui:
- * "Authorization required (Otorisasi Diperlukan)" -> Review permissions -> Allow!
+ * 0. FUNGSI OTORISASI IZIN GOOGLE DRIVE (JALANKAN SEKALI DARI EDITOR)
+ * Berfungsi mengaktifkan izin DriveApp selamanya agar semua spreadsheet
+ * (hari ini, malam nanti, besok dan seterusnya) otomatis berstatus publik.
  */
 function otorisasiAksesPublikDrive() {
   DriveApp.getRootFolder().getName();
@@ -61,19 +62,23 @@ function otorisasiAksesPublikDrive() {
   const props = PropertiesService.getScriptProperties();
   const currentId = props.getProperty("CURRENT_SPREADSHEET_ID");
   if (currentId) {
-    const f = DriveApp.getFileById(currentId);
     try {
-      f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
-    } catch (e1) {
-      f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      const f = DriveApp.getFileById(currentId);
+      try {
+        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+      } catch (e1) {
+        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+      Logger.log("BERHASIL! Spreadsheet (" + currentId + ") sekarang TERBUKA untuk siapa saja dengan link.");
+    } catch (eFile) {
+      Logger.log("Info file: " + eFile.toString());
     }
-    Logger.log("BERHASIL! Spreadsheet (" + currentId + ") sekarang TERBUKA untuk siapa saja dengan link.");
   }
 }
 
 /**
  * 1. FUNGSI MENAMPILKAN STATUS SERVER (GET)
- * Mengembalikan status server dan link spreadsheet terbaru yang dibuat.
+ * Mengembalikan status server dan link spreadsheet publik terbaru.
  */
 function doGet(e) {
   try {
@@ -104,7 +109,7 @@ function doGet(e) {
     
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Server Google Apps Script Presensi Asrama (v8.0) Aktif!",
+      message: "Server Google Apps Script Presensi Asrama (v8.1) Aktif!",
       spreadsheetUrl: latestUrl,
       spreadsheetName: latestName,
       totalSantri: latestTotal,
@@ -121,30 +126,29 @@ function doGet(e) {
 
 /**
  * 2. FUNGSI PENERIMA DATA FORMULIR (POST)
- * Otomatis membuat FILE SPREADSHEET BARU dengan LINK BARU di Google Drive,
- * mendukung multi-sender kumulatif dalam 1 hari, KOP Judul SMP,
- * dan pemisahan tegas Gedung Asrama 3 (Kelas 9), Gedung Asrama 2 (Kelas 8), dan Gedung Asrama 1 (Kelas 7).
+ * Menyatukan kiriman dari banyak orang jaga asrama (Kelas 7, 8, dan 9)
+ * ke dalam SATU file spreadsheet yang sama, membedakan tab Pagi/Malam,
+ * dan otomatis membuat spreadsheet baru ketika berganti hari.
  */
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.tryLock(30000); // Kunci 30 detik untuk pencegahan konflik penulisan ganda
+  lock.tryLock(30000); // Kunci 30 detik agar antrean kiriman dari 4 HP diproses aman tanpa konflik
 
   try {
-    // Parsing data dari request
     let data = {};
     if (!e) {
-      // Data simulasi jika dites langsung dari editor Apps Script
+      // Data simulasi saat pengujian manual langsung di editor
       data = {
         sesi: "Pagi",
-        namaPelapor: "Ust. Pembina Asrama (Test)",
-        keterangan: "Pemeriksaan rutin asrama pagi hari",
+        namaPelapor: "Ust. Piket Asrama (Test)",
+        keterangan: "Pengecekan rutin asrama",
         santriItems: [
           {
             kelas: "Kelas 9",
             kamar: "Kamar 1",
             namaSantri: "Chaedar Dwi Osama",
             statusKehadiran: "Alpa",
-            sakit: "Belum kembali ke kamar saat presensi",
+            sakit: "Belum kembali ke kamar saat jam presensi",
             rincianSakit: "Tanpa surat izin",
             obat: "-",
             dariKapan: "Hari Ini (Pagi)",
@@ -218,7 +222,7 @@ function doPost(e) {
 
     const catatanUmum = (data.keterangan || data.catatanKamar || "-").trim();
 
-    // Normalisasi array santri dari request saat ini
+    // Normalisasi daftar santri dari request saat ini
     let santriList = [];
     if (Array.isArray(data.santriItems) && data.santriItems.length > 0) {
       santriList = data.santriItems;
@@ -251,7 +255,7 @@ function doPost(e) {
     }
 
     // ========================================================================
-    // TAHAP 1: KELOLA FILE SPREADSHEET (1 HARI LINK SAMA, LEWAT 1 HARI BUAT BARU)
+    // TAHAP 1: KELOLA FILE SPREADSHEET (1 HARI = 1 SPREADSHEET YANG SAMA)
     // ========================================================================
     const judulSpreadsheetHarian = "Laporan Rekap Santri Sakit SMP - " + tanggalPanjang;
     let ssTarget = null;
@@ -260,19 +264,37 @@ function doPost(e) {
     const lastDate = (props.getProperty("CURRENT_SPREADSHEET_DATE") || "").trim();
     const lastId = (props.getProperty("CURRENT_SPREADSHEET_ID") || "").trim();
 
-    // 1. Cek apakah sudah ada file spreadsheet untuk hari ini (Link sama dalam 1 hari)
+    // 1a. Cek apakah sudah ada spreadsheet untuk hari ini via ScriptProperties
     if (lastDate === tanggalIso && lastId) {
       try {
         ssTarget = SpreadsheetApp.openById(lastId);
         spreadsheetUrl = ssTarget.getUrl();
         Logger.log("Menggunakan spreadsheet hari ini (" + tanggalIso + "): " + lastId);
       } catch (errOpen) {
-        Logger.log("Gagal membuka spreadsheet lama, akan buat baru: " + errOpen.toString());
+        Logger.log("Gagal membuka spreadsheet lama, akan cari/buat baru: " + errOpen.toString());
         ssTarget = null;
       }
     }
 
-    // 2. Jika belum ada atau tanggal sudah berganti (lewat 1 hari), buat spreadsheet BARU
+    // 1b. Fallback: Cari di Google Drive jika ada file dengan judul hari ini
+    if (!ssTarget) {
+      try {
+        const fileIter = DriveApp.getFilesByName(judulSpreadsheetHarian);
+        if (fileIter.hasNext()) {
+          const existingDriveFile = fileIter.next();
+          ssTarget = SpreadsheetApp.openById(existingDriveFile.getId());
+          spreadsheetUrl = ssTarget.getUrl();
+          props.setProperty("CURRENT_SPREADSHEET_DATE", tanggalIso);
+          props.setProperty("CURRENT_SPREADSHEET_ID", ssTarget.getId());
+          props.setProperty("CURRENT_SPREADSHEET_URL", spreadsheetUrl);
+          Logger.log("Menemukan file hari ini via Drive: " + ssTarget.getId());
+        }
+      } catch (eFindDrive) {
+        Logger.log("Info pencarian Drive: " + eFindDrive.toString());
+      }
+    }
+
+    // 2. Jika belum ada file hari ini (atau tanggal sudah berganti), BUAT BARU
     if (!ssTarget) {
       try {
         ssTarget = SpreadsheetApp.create(judulSpreadsheetHarian);
@@ -287,7 +309,6 @@ function doPost(e) {
         throw new Error("Tidak dapat menginisialisasi Google Spreadsheet.");
       }
 
-      // Simpan tanggal dan ID file baru hari ini ke ScriptProperties
       props.setProperty("CURRENT_SPREADSHEET_DATE", tanggalIso);
       props.setProperty("CURRENT_SPREADSHEET_ID", ssTarget.getId());
       props.setProperty("CURRENT_SPREADSHEET_URL", spreadsheetUrl);
@@ -299,7 +320,8 @@ function doPost(e) {
       publicSharingUrl = publicSharingUrl.replace(/\/edit.*$/, "") + "/edit?usp=sharing";
     }
 
-    // 3. Pastikan izin berbagi SIAPA SAJA DENGAN LINK AKTIF agar tidak diblokir/minta akses di HP atau akun lain
+    // 3. SET AKSES PUBLIK (ANYONE WITH LINK DAPAT MEMBUKA)
+    // Berlaku untuk sesi pagi, sesi malam, dan besok-besoknya
     try {
       const driveFile = DriveApp.getFileById(ssTarget.getId());
       try {
@@ -312,8 +334,8 @@ function doPost(e) {
     }
 
     // ========================================================================
-    // TAHAP 2: SIMPAN DATA MASUK KE TAB MASTER "Semua Riwayat" DI FILE HARIAN
-    // (Disimpan terlebih dahulu agar riwayat setiap kiriman tersimpan abadi)
+    // TAHAP 2: SIMPAN DATA BARU KE TAB MASTER "Semua Riwayat"
+    // (Seluruh kiriman dari Orang 1, 2, 3 tercatat permanen di sini)
     // ========================================================================
     let sheetMasterHarian = ssTarget.getSheetByName(NAMA_SHEET_MASTER);
     if (!sheetMasterHarian) {
@@ -347,15 +369,15 @@ function doPost(e) {
     });
 
     // ========================================================================
-    // TAHAP 3: HIMPUN SELURUH SANTRI SESI INI SECARA KUMULATIF DARI SEMUA PENGIRIM
-    // (Jika ada 2 orang atau lebih yang kirim hari ini, SEMUA DATA DIGABUNGKAN)
+    // TAHAP 3: HIMPUN SEMUA SANTRI DARI SELURUH ORANG JAGA DI SESI INI
+    // (Menggabungkan kiriman Kelas 7, 8 dari Orang 1 & 2 dengan Kelas 9 dari Orang 3)
     // ========================================================================
     const rekapSesi = ambilSemuaSantriSesiHariIni(sheetMasterHarian, sesi);
     const santriKumulatif = (rekapSesi.santriList && rekapSesi.santriList.length > 0) ? rekapSesi.santriList : santriList;
     const gabunganPelapor = (rekapSesi.pelaporList && rekapSesi.pelaporList.length > 0) ? rekapSesi.pelaporList.join(" • ") : namaPelapor;
     const gabunganCatatan = (rekapSesi.catatanList && rekapSesi.catatanList.length > 0) ? rekapSesi.catatanList.join("; ") : catatanUmum;
 
-    // Update info spreadsheet terbaru untuk respon GET fallback
+    // Simpan info rekap terbaru
     try {
       props.setProperty("LATEST_SPREADSHEET_URL", publicSharingUrl);
       props.setProperty("LATEST_SPREADSHEET_NAME", judulSpreadsheetHarian);
@@ -365,7 +387,7 @@ function doPost(e) {
     }
 
     // ========================================================================
-    // TAHAP 4: TAMPILKAN TAB SESI (PAGI / MALAM) DENGAN DATA KUMULATIF LENGKAP
+    // TAHAP 4: TAMPILKAN TAB SESI (PAGI / MALAM) DENGAN KOTAK KAMAR STANDAR
     // ========================================================================
     const namaTabSesi = "Sesi " + sesi;
     let sheetSesi = ssTarget.getSheetByName(namaTabSesi);
@@ -379,15 +401,14 @@ function doPost(e) {
         sheetSesi = ssTarget.insertSheet(namaTabSesi, 0);
       }
     } else {
-      // Bersihkan tab sesi untuk direkonstruksi dengan data kumulatif dari seluruh pembina
       sheetSesi.clear();
     }
 
-    // Bangun tampilan rapi di tab sesi tersebut (terpisah Gedung 3/2/1 & per kamar)
+    // Bangun tampilan rapi seragam kotak kamar per kelas (Kelas 9, Kelas 8, Kelas 7)
     bangunTampilanLaporan(sheetSesi, santriKumulatif, namaBulanPanjang, tahunNomor, tanggalPanjang, sesi, formattedTimestamp, gabunganPelapor, gabunganCatatan);
 
     // ========================================================================
-    // TAHAP 5: SIMPAN JUGA KE CONTAINER JIKA BERBEDA (ARSIP GLOBAL LENGKAP)
+    // TAHAP 5: ARSIP GLOBAL DI CONTAINER (JIKA BERBEDA)
     // ========================================================================
     const ssContainer = SpreadsheetApp.getActiveSpreadsheet();
     if (ssContainer && ssContainer.getId() !== ssTarget.getId()) {
@@ -428,7 +449,7 @@ function doPost(e) {
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Laporan sesi " + sesi + " berhasil disimpan di file " + tanggalPanjang + "! (" + santriKumulatif.length + " santri tercatat kumulatif)",
+      message: "Laporan sesi " + sesi + " tersimpan! (" + santriKumulatif.length + " santri tercatat kumulatif di 1 file)",
       spreadsheetUrl: publicSharingUrl,
       spreadsheetName: judulSpreadsheetHarian,
       tabBaru: namaTabSesi,
@@ -451,8 +472,7 @@ function doPost(e) {
 
 /**
  * 3. FUNGSI HIMPUN DATA KUMULATIF PER SESI HARI INI DARI TAB MASTER
- * Menggabungkan laporan dari Orang 1, Orang 2, dst. yang mengirim di sesi yang sama.
- * Jika santri yang sama diperbarui informasinya, data terbaru yang digunakan.
+ * Menggabungkan seluruh kiriman dari semua HP yang mengirim pada sesi yang sama.
  */
 function ambilSemuaSantriSesiHariIni(sheetMasterHarian, targetSesi) {
   const data = sheetMasterHarian.getDataRange().getValues();
@@ -469,7 +489,7 @@ function ambilSemuaSantriSesiHariIni(sheetMasterHarian, targetSesi) {
     const row = data[i];
     const rowSesi = String(row[1] || "").trim().toLowerCase();
 
-    // Cocokkan dengan sesi yang sedang diproses (misal "Pagi" atau "Malam")
+    // Cocokkan dengan sesi (misal "Pagi" atau "Malam")
     if (rowSesi === targetSesiClean) {
       const kelas = String(row[2] || "").trim();
       const kamar = String(row[3] || "").trim();
@@ -487,7 +507,7 @@ function ambilSemuaSantriSesiHariIni(sheetMasterHarian, targetSesi) {
       if (!nama || nama === "-") continue;
 
       // Kunci unik per santri: kelas + kamar + nama
-      // Jika pembina yang sama/berbeda mengirim koreksi untuk santri yang sama, record terupdate
+      // Jika orang yang sama mengirim koreksi santri yang sama, record terupdate rapi
       const santriKey = (kelas + "__" + kamar + "__" + nama).toLowerCase();
 
       santriMap[santriKey] = {
@@ -525,17 +545,16 @@ function ambilSemuaSantriSesiHariIni(sheetMasterHarian, targetSesi) {
 }
 
 /**
- * 4. FUNGSI MEMBANGUN STRUKTUR TAMPILAN LAPORAN (KOP, KPI, GEDUNG 3/2/1 & KOTAK KAMAR)
+ * 4. FUNGSI MEMBANGUN STRUKTUR TAMPILAN LAPORAN (KOP, KPI & KOTAK KAMAR SERAGAM)
+ * Kotak kamar seragam: KELAS 9 • KAMAR, KELAS 8 • 3.01, KELAS 7 • 1.01 dst.
  */
 function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, tanggalPanjang, sesi, formattedTimestamp, namaPelapor, catatanUmum) {
-  // Matikan gridlines jika didukung agar tampilan bersih seperti dokumen resmi
   try {
     sheet.setHiddenGridlines(true);
   } catch (eGrid) {
     Logger.log("Info gridlines: " + eGrid.toString());
   }
 
-  // 11 Kolom Total: No | Nama | Kelas | Kamar | Status | Keluhan | Obat | Sejak | Lokasi | Suhu | Catatan
   const TOTAL_KOLOM = 11;
   sheet.getRange(1, 1, 300, TOTAL_KOLOM).setFontFamily("Arial");
 
@@ -563,7 +582,7 @@ function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, 
   rangeSubJudul.setVerticalAlignment("middle");
   sheet.setRowHeight(2, 28);
 
-  // Baris 3: Info Waktu Kirim & Total Santri Kumulatif
+  // Baris 3: Info Waktu Kirim & Total Santri Kumulatif Seluruh Petugas
   let infoKop = "Waktu Pembaruan: " + formattedTimestamp + " WIB   •   Total Dilaporkan: " + santriList.length + " Santri";
   if (namaPelapor) {
     infoKop = "Waktu Pembaruan: " + formattedTimestamp + " WIB   •   Petugas: " + namaPelapor + "   •   Total Dilaporkan: " + santriList.length + " Santri";
@@ -623,35 +642,24 @@ function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, 
     .setBorder(true, true, true, true, false, false, "#94A3B8", SpreadsheetApp.BorderStyle.SOLID);
 
   sheet.setRowHeight(5, 32);
-  sheet.setRowHeight(6, 14); // Spacer sebelum tabel data
+  sheet.setRowHeight(6, 14); // Spacer sebelum kotak data
 
-  // Helper identifikasi jenjang kelas
-  function tentukanKelasKey(kelasRaw) {
-    const k = String(kelasRaw || "").toLowerCase();
-    if (k.includes("9")) return "Kelas 9";
-    if (k.includes("8")) return "Kelas 8";
-    if (k.includes("7")) return "Kelas 7";
-    return "Lainnya";
-  }
+  // Kelompokkan santri per kamar dan kelas (Format Seragam & Rapi)
+  const kelompokMap = {};
+  const urutanKelompok = ["Kelas 9", "Kelas 8", "Kelas 7", "Lainnya"];
 
-  // Pengelompokan bertingkat: Jenjang Gedung Asrama / Kelas -> Kamar
-  const perKelasMap = {};
   santriList.forEach(function(item) {
-    const kelasKey = tentukanKelasKey(item.kelas);
+    const k = (item.kelas || "").trim();
+    let kelasKey = "Lainnya";
+    if (k.includes("9")) kelasKey = "Kelas 9";
+    else if (k.includes("8")) kelasKey = "Kelas 8";
+    else if (k.includes("7")) kelasKey = "Kelas 7";
+
     const kamarRaw = (item.kamar || "Kamar Umum").trim();
+    const groupKey = kelasKey + "__" + kamarRaw;
 
-    if (!perKelasMap[kelasKey]) {
-      perKelasMap[kelasKey] = {
-        santriSemua: [],
-        kamarMap: {}
-      };
-    }
-    perKelasMap[kelasKey].santriSemua.push(item);
-
-    if (!perKelasMap[kelasKey].kamarMap[kamarRaw]) {
-      perKelasMap[kelasKey].kamarMap[kamarRaw] = [];
-    }
-    perKelasMap[kelasKey].kamarMap[kamarRaw].push(item);
+    if (!kelompokMap[groupKey]) kelompokMap[groupKey] = [];
+    kelompokMap[groupKey].push(item);
   });
 
   let barisSaatIni = 7;
@@ -669,174 +677,151 @@ function bangunTampilanLaporan(sheet, santriList, namaBulanPanjang, tahunNomor, 
     "Catatan Tambahan"
   ];
 
-  // Urutan resmi jenjang asrama: Kelas 9 (Gedung 3), Kelas 8 (Gedung 2), Kelas 7 (Gedung 1)
-  const urutanKelas = ["Kelas 9", "Kelas 8", "Kelas 7", "Lainnya"];
+  // Urutkan kotak kamar: Kelas 9, Kelas 8, Kelas 7, lalu urutkan nomor kamar secara numerik alami
+  const daftarKunci = Object.keys(kelompokMap).sort(function(a, b) {
+    const partsA = a.split("__");
+    const partsB = b.split("__");
+    const kelasA = partsA[0];
+    const kelasB = partsB[0];
+    const kamarA = partsA[1] || "";
+    const kamarB = partsB[1] || "";
 
-  urutanKelas.forEach(function(kelasKey) {
-    const dataKelas = perKelasMap[kelasKey];
-    if (!dataKelas || dataKelas.santriSemua.length === 0) return;
+    const ia = urutanKelompok.indexOf(kelasA);
+    const ib = urutanKelompok.indexOf(kelasB);
+    if (ia !== ib) {
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+    }
+    return kamarA.localeCompare(kamarB, undefined, { numeric: true, sensitivity: 'base' });
+  });
 
-    let judulGedung = "";
-    let bgGedung = "#0F172A";
-    let textGedung = "#FFFFFF";
-    let borderGedung = "#38BDF8";
+  // Render setiap kotak kamar secara seragam
+  daftarKunci.forEach(function(kategoriKey) {
+    const items = kelompokMap[kategoriKey];
+    if (!items || items.length === 0) return;
+
+    const parts = kategoriKey.split("__");
+    const kelasKey = parts[0];
+    const kamarKey = parts[1] || "";
+
+    let namaBannerKotak = "";
+    let warnaBanner = "#1E293B";
 
     if (kelasKey === "Kelas 9") {
-      judulGedung = "🏢   GEDUNG ASRAMA 3  •  KELAS 9   (TOTAL: " + dataKelas.santriSemua.length + " SANTRI DILAPORKAN)";
-      bgGedung = "#0F172A"; // Dark Navy Slate
-      borderGedung = "#38BDF8";
+      namaBannerKotak = "KELAS 9 • " + kamarKey.toUpperCase() + "   —   " + items.length + " Santri Dilaporkan";
+      warnaBanner = "#0F172A"; // Navy Slate Gelap
     } else if (kelasKey === "Kelas 8") {
-      judulGedung = "🏢   GEDUNG ASRAMA 2  •  KELAS 8   (TOTAL: " + dataKelas.santriSemua.length + " SANTRI DILAPORKAN)";
-      bgGedung = "#1E293B"; // Slate Tua Elegan
-      borderGedung = "#818CF8";
+      namaBannerKotak = "KELAS 8 • " + kamarKey.toUpperCase() + "   —   " + items.length + " Santri Dilaporkan";
+      warnaBanner = "#1E293B"; // Slate
     } else if (kelasKey === "Kelas 7") {
-      judulGedung = "🏢   GEDUNG ASRAMA 1  •  KELAS 7   (TOTAL: " + dataKelas.santriSemua.length + " SANTRI DILAPORKAN)";
-      bgGedung = "#0F2942"; // Deep Blue Asrama
-      borderGedung = "#60A5FA";
+      namaBannerKotak = "KELAS 7 • " + kamarKey.toUpperCase() + "   —   " + items.length + " Santri Dilaporkan";
+      warnaBanner = "#1E293B"; // Slate
     } else {
-      judulGedung = "🏢   " + kelasKey.toUpperCase() + "   (TOTAL: " + dataKelas.santriSemua.length + " SANTRI DILAPORKAN)";
-      bgGedung = "#334155";
-      borderGedung = "#94A3B8";
+      namaBannerKotak = (kamarKey ? kamarKey.toUpperCase() : kelasKey.toUpperCase()) + "   —   " + items.length + " Santri";
+      warnaBanner = "#334155";
     }
 
-    // ------------------------------------------------------------------------
-    // BANNER UTAMA GEDUNG ASRAMA / JENJANG KELAS (LEVEL 1)
-    // ------------------------------------------------------------------------
-    const rangeBannerGedung = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
-    rangeBannerGedung.merge();
-    rangeBannerGedung.setValue(judulGedung);
-    rangeBannerGedung.setBackground(bgGedung);
-    rangeBannerGedung.setFontColor(textGedung);
-    rangeBannerGedung.setFontWeight("bold");
-    rangeBannerGedung.setFontSize(11.5);
-    rangeBannerGedung.setHorizontalAlignment("left");
-    rangeBannerGedung.setVerticalAlignment("middle");
-    rangeBannerGedung.setBorder(true, true, true, true, false, false, borderGedung, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-    sheet.setRowHeight(barisSaatIni, 34);
+    const barisMulaiKotak = barisSaatIni;
+
+    // 1. Baris Judul Kotak (Banner Kamar & Kelas)
+    const rangeBanner = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+    rangeBanner.merge();
+    rangeBanner.setValue(namaBannerKotak);
+    rangeBanner.setBackground(warnaBanner);
+    rangeBanner.setFontColor("#FFFFFF");
+    rangeBanner.setFontWeight("bold");
+    rangeBanner.setFontSize(10.5);
+    rangeBanner.setVerticalAlignment("middle");
+    rangeBanner.setHorizontalAlignment("left");
+    sheet.setRowHeight(barisSaatIni, 30);
     barisSaatIni++;
 
-    // Spacer kecil di bawah banner gedung
-    sheet.setRowHeight(barisSaatIni, 8);
+    // 2. Baris Header Kolom Tabel
+    const rangeHeaderKotak = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+    rangeHeaderKotak.setValues([headerKolomTabel]);
+    rangeHeaderKotak.setBackground("#334155"); // Steel slate
+    rangeHeaderKotak.setFontColor("#FFFFFF");
+    rangeHeaderKotak.setFontWeight("bold");
+    rangeHeaderKotak.setFontSize(9.5);
+    rangeHeaderKotak.setHorizontalAlignment("center");
+    rangeHeaderKotak.setVerticalAlignment("middle");
+    sheet.setRowHeight(barisSaatIni, 28);
     barisSaatIni++;
 
-    // ------------------------------------------------------------------------
-    // KOTAK TABEL PER KAMAR DI DALAM GEDUNG INI (LEVEL 2)
-    // ------------------------------------------------------------------------
-    const daftarKamar = Object.keys(dataKelas.kamarMap).sort(function(a, b) {
-      return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
-    });
+    // 3. Baris Data Santri
+    items.forEach(function(item, idx) {
+      const rowStatus = item.statusKehadiran || item.status || "Sakit";
+      const rowKelas = item.kelas || kelasKey || "-";
+      const rowKamar = item.kamar || kamarKey || "-";
+      const rowData = [
+        idx + 1,
+        item.namaSantri || item.nama || "-",
+        rowKelas,
+        rowKamar,
+        rowStatus,
+        item.sakit || item.keluhan || item.alasan || "-",
+        item.obat || "-",
+        item.dariKapan || item.sejak || "-",
+        item.lokasi || "-",
+        item.suhuTubuh || item.suhu || "-",
+        item.rincianSakit || item.rincianGejala || item.catatan || "-"
+      ];
 
-    daftarKamar.forEach(function(kamarKey) {
-      const itemsKamar = dataKelas.kamarMap[kamarKey];
-      if (!itemsKamar || itemsKamar.length === 0) return;
-
-      const barisMulaiKotak = barisSaatIni;
-
-      // 1. Sub-Header Kamar
-      const rangeBannerKamar = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
-      rangeBannerKamar.merge();
-      rangeBannerKamar.setValue("🛏️   KAMAR " + kamarKey.toUpperCase() + "   —   " + itemsKamar.length + " Santri Dilaporkan");
-      rangeBannerKamar.setBackground("#334155"); // Medium Slate
-      rangeBannerKamar.setFontColor("#FFFFFF");
-      rangeBannerKamar.setFontWeight("bold");
-      rangeBannerKamar.setFontSize(10);
-      rangeBannerKamar.setHorizontalAlignment("left");
-      rangeBannerKamar.setVerticalAlignment("middle");
+      const rowRange = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
+      rowRange.setValues([rowData]);
+      rowRange.setVerticalAlignment("middle");
+      rowRange.setFontSize(9.5);
+      rowRange.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
       sheet.setRowHeight(barisSaatIni, 28);
-      barisSaatIni++;
 
-      // 2. Baris Header Kolom Tabel
-      const rangeHeaderKotak = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
-      rangeHeaderKotak.setValues([headerKolomTabel]);
-      rangeHeaderKotak.setBackground("#475569"); // Slate Header
-      rangeHeaderKotak.setFontColor("#FFFFFF");
-      rangeHeaderKotak.setFontWeight("bold");
-      rangeHeaderKotak.setFontSize(9.5);
-      rangeHeaderKotak.setHorizontalAlignment("center");
-      rangeHeaderKotak.setVerticalAlignment("middle");
-      sheet.setRowHeight(barisSaatIni, 26);
-      barisSaatIni++;
+      // Alignment per kolom
+      sheet.getRange(barisSaatIni, 1).setHorizontalAlignment("center"); // No
+      sheet.getRange(barisSaatIni, 2).setFontWeight("bold").setHorizontalAlignment("left"); // Nama
+      sheet.getRange(barisSaatIni, 3).setFontWeight("bold").setHorizontalAlignment("center"); // Kelas
+      sheet.getRange(barisSaatIni, 4).setHorizontalAlignment("center"); // Kamar
+      sheet.getRange(barisSaatIni, 6).setHorizontalAlignment("left"); // Keluhan
+      sheet.getRange(barisSaatIni, 7).setHorizontalAlignment("left"); // Obat
+      sheet.getRange(barisSaatIni, 8).setHorizontalAlignment("center"); // Mulai Sejak
+      sheet.getRange(barisSaatIni, 9).setHorizontalAlignment("left"); // Lokasi
+      sheet.getRange(barisSaatIni, 10).setHorizontalAlignment("center"); // Suhu
+      sheet.getRange(barisSaatIni, 11).setHorizontalAlignment("left"); // Catatan
 
-      // 3. Baris Data Santri
-      itemsKamar.forEach(function(item, idx) {
-        const rowStatus = item.statusKehadiran || item.status || "Sakit";
-        const rowKelas = item.kelas || kelasKey || "-";
-        const rowKamar = item.kamar || kamarKey || "-";
-        const rowData = [
-          idx + 1,
-          item.namaSantri || item.nama || "-",
-          rowKelas,
-          rowKamar,
-          rowStatus,
-          item.sakit || item.keluhan || item.alasan || "-",
-          item.obat || "-",
-          item.dariKapan || item.sejak || "-",
-          item.lokasi || "-",
-          item.suhuTubuh || item.suhu || "-",
-          item.rincianSakit || item.rincianGejala || item.catatan || "-"
-        ];
+      // Badge Status Berwarna (Kolom E / Kolom 5)
+      const cellStatus = sheet.getRange(barisSaatIni, 5);
+      cellStatus.setFontWeight("bold").setHorizontalAlignment("center");
 
-        const rowRange = sheet.getRange(barisSaatIni, 1, 1, TOTAL_KOLOM);
-        rowRange.setValues([rowData]);
-        rowRange.setVerticalAlignment("middle");
-        rowRange.setFontSize(9.5);
-        rowRange.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-        sheet.setRowHeight(barisSaatIni, 28);
+      const stLower = rowStatus.toLowerCase();
+      if (stLower.includes("sakit")) {
+        cellStatus.setBackground("#FEE2E2");
+        cellStatus.setFontColor("#991B1B");
+      } else if (stLower.includes("izin")) {
+        cellStatus.setBackground("#FEF3C7");
+        cellStatus.setFontColor("#92400E");
+      } else if (stLower.includes("alpa")) {
+        cellStatus.setBackground("#F3E8FF");
+        cellStatus.setFontColor("#6B21A8");
+      }
 
-        // Alignment per kolom
-        sheet.getRange(barisSaatIni, 1).setHorizontalAlignment("center"); // No
-        sheet.getRange(barisSaatIni, 2).setFontWeight("bold").setHorizontalAlignment("left"); // Nama
-        sheet.getRange(barisSaatIni, 3).setFontWeight("bold").setHorizontalAlignment("center"); // Kelas
-        sheet.getRange(barisSaatIni, 4).setHorizontalAlignment("center"); // Kamar
-        sheet.getRange(barisSaatIni, 6).setHorizontalAlignment("left"); // Keluhan
-        sheet.getRange(barisSaatIni, 7).setHorizontalAlignment("left"); // Obat
-        sheet.getRange(barisSaatIni, 8).setHorizontalAlignment("center"); // Mulai Sejak
-        sheet.getRange(barisSaatIni, 9).setHorizontalAlignment("left"); // Lokasi
-        sheet.getRange(barisSaatIni, 10).setHorizontalAlignment("center"); // Suhu
-        sheet.getRange(barisSaatIni, 11).setHorizontalAlignment("left"); // Catatan
+      // Zebra striping lembut (latar putih vs off-white slate)
+      const rowBg = (idx % 2 === 1) ? "#F8FAFC" : "#FFFFFF";
+      sheet.getRange(barisSaatIni, 1, 1, 4).setBackground(rowBg);
+      sheet.getRange(barisSaatIni, 6, 1, 6).setBackground(rowBg);
 
-        // Badge Status Berwarna (Kolom E / Kolom 5)
-        const cellStatus = sheet.getRange(barisSaatIni, 5);
-        cellStatus.setFontWeight("bold").setHorizontalAlignment("center");
+      // Garis pemisah horizontal tipis antar baris
+      rowRange.setBorder(true, false, true, false, false, false, "#E2E8F0", SpreadsheetApp.BorderStyle.SOLID);
 
-        const stLower = rowStatus.toLowerCase();
-        if (stLower.includes("sakit")) {
-          cellStatus.setBackground("#FEE2E2");
-          cellStatus.setFontColor("#991B1B");
-        } else if (stLower.includes("izin")) {
-          cellStatus.setBackground("#FEF3C7");
-          cellStatus.setFontColor("#92400E");
-        } else if (stLower.includes("alpa")) {
-          cellStatus.setBackground("#F3E8FF");
-          cellStatus.setFontColor("#6B21A8");
-        }
-
-        // Zebra striping lembut (latar putih vs off-white slate)
-        const rowBg = (idx % 2 === 1) ? "#F8FAFC" : "#FFFFFF";
-        sheet.getRange(barisSaatIni, 1, 1, 4).setBackground(rowBg);
-        sheet.getRange(barisSaatIni, 6, 1, 6).setBackground(rowBg);
-
-        // Garis pemisah horizontal tipis antar baris
-        rowRange.setBorder(true, false, true, false, false, false, "#E2E8F0", SpreadsheetApp.BorderStyle.SOLID);
-
-        barisSaatIni++;
-      });
-
-      const barisAkhirKotak = barisSaatIni - 1;
-
-      // 4. Pasang Border Luar Mengelilingi Kotak Kamar (Efek Card Rapi)
-      const rangeSeluruhKotak = sheet.getRange(barisMulaiKotak, 1, barisAkhirKotak - barisMulaiKotak + 1, TOTAL_KOLOM);
-      rangeSeluruhKotak.setBorder(true, true, true, true, false, false, "#64748B", SpreadsheetApp.BorderStyle.SOLID);
-
-      // Jeda antar kamar di dalam gedung yang sama
-      sheet.setRowHeight(barisSaatIni, 12);
       barisSaatIni++;
     });
 
-    // ------------------------------------------------------------------------
-    // JEDA PEMISAH BESAR ANTAR GEDUNG ASRAMA
-    // ------------------------------------------------------------------------
-    sheet.setRowHeight(barisSaatIni, 18);
+    const barisAkhirKotak = barisSaatIni - 1;
+
+    // 4. Pasang Border Luar Mengelilingi Kotak (Efek Card Rapi)
+    const rangeSeluruhKotak = sheet.getRange(barisMulaiKotak, 1, barisAkhirKotak - barisMulaiKotak + 1, TOTAL_KOLOM);
+    rangeSeluruhKotak.setBorder(true, true, true, true, false, false, "#64748B", SpreadsheetApp.BorderStyle.SOLID);
+
+    // Jeda antar kotak
+    sheet.setRowHeight(barisSaatIni, 14);
     barisSaatIni++;
   });
 
